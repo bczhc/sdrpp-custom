@@ -39,3 +39,9 @@ ninja
 # Installing
 sudo ninja install
 ```
+
+## Controlling SDR++ using a gaming controller
+
+1. Start SDR++
+2. Run `./controller.py`
+3. Play!

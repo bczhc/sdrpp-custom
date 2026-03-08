@@ -5,7 +5,7 @@ import struct
 from evdev import InputDevice, ecodes
 
 # --- 常量配置区 ---
-FIFO_PATH = '/home/bczhc/commands'
+FIFO_PATH = './command'
 DEVICE_PATH = '/dev/input/by-id/usb-Flydigi_Flydigi_Direwolf_4_Flydigi_Direwolf_4-event-joystick'
 
 THUMBL_VALUES = [0.017517]
