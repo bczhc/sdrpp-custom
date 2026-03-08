@@ -27,6 +27,7 @@
 #include <gui/colormaps.h>
 #include <gui/widgets/snr_meter.h>
 #include <gui/tuner.h>
+#include <gui/commands.h>
 
 void MainWindow::init() {
     LoadingScreen::show("Initializing UI");
@@ -341,6 +342,14 @@ void MainWindow::draw() {
     }
     ImGui::PopID();
 
+    {
+        auto saved_cmd = cmd_panel_toggle.load();
+        if (saved_cmd) {
+            cmd_panel_toggle.store(false);
+            showMenu = !showMenu;
+        }
+    }
+
     ImGui::SameLine();
 
     bool tmpPlaySate = playing;
@@ -616,9 +625,8 @@ void MainWindow::draw() {
     ImGui::TextUnformatted("Zoom");
     ImGui::SetCursorPosX((ImGui::GetWindowSize().x / 2.0) - 10 * style::uiScale);
     ImVec2 wfSliderSize(20.0 * style::uiScale, 150.0 * style::uiScale);
-    if (ImGui::VSliderFloat("##_7_", wfSliderSize, &bw, 1.0, 0.0, "")) {
-        double factor = (double)bw * (double)bw;
 
+    auto updateZoom = [&vfo](double factor){
         // Map 0.0 -> 1.0 to 1000.0 -> bandwidth
         double wfBw = gui::waterfall.getBandwidth();
         double delta = wfBw - 1000.0;
@@ -627,6 +635,30 @@ void MainWindow::draw() {
         gui::waterfall.setViewBandwidth(finalBw);
         if (vfo != NULL) {
             gui::waterfall.setViewOffset(vfo->centerOffset); // center vfo on screen
+        }
+    };
+
+    if (ImGui::VSliderFloat("##_7_", wfSliderSize, &bw, 1.0, 0.0, "")) {
+        double factor = (double)bw * (double)bw;
+        // flog::info("factor: {}", factor);
+        updateZoom(factor);
+    }
+
+    {
+        auto saved_value = cmd_zoom_factor.load();
+        if (saved_value != 0.0) {
+            cmd_zoom_factor.store(0.0);
+            bw = sqrt((double)saved_value);
+            updateZoom(saved_value);
+        }
+    }
+    {
+        auto saved_value = cmd_zoom_factor_delta.load();
+        if (saved_value != 0.0) {
+            cmd_zoom_factor_delta.store(0.0);
+            bw += saved_value;
+            double factor = (double) bw * (double) bw;
+            updateZoom(factor);
         }
     }
 
@@ -653,6 +685,20 @@ void MainWindow::draw() {
         core::configManager.acquire();
         core::configManager.conf["min"] = fftMin;
         core::configManager.release(true);
+    }
+
+    {
+        auto saved_cmd_value = cmd_fft_min_change.load();
+        if (saved_cmd_value != 0.0) {
+            cmd_fft_min_change.store(0.0);
+            fftMin += saved_cmd_value;
+            if (fftMin < -160.0) fftMin = -160.0;
+            if (fftMin > -10.0) fftMin = -10.0;
+            fftMin = std::min<float>(fftMax - 10, fftMin);
+            core::configManager.acquire();
+            core::configManager.conf["min"] = fftMin;
+            core::configManager.release(true);
+        }
     }
 
     ImGui::EndChild();

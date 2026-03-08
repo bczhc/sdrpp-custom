@@ -7,6 +7,7 @@
 #include <utils/flog.h>
 #include <gui/gui.h>
 #include <gui/style.h>
+#include <gui/commands.h>
 
 float DEFAULT_COLOR_MAP[][3] = {
     { 0x00, 0x00, 0x20 },
@@ -407,8 +408,14 @@ namespace ImGui {
             return;
         }
 
+        int saved_cmd_spectrum_shift = cmd_spectrum_shift.load();
+        if (saved_cmd_spectrum_shift != 0) {
+            mouseWheel = saved_cmd_spectrum_shift;
+            cmd_spectrum_shift.store(0);
+        }
+
         // If the mouse wheel is moved on the frequency scale
-        if (mouseWheel != 0 && mouseInFreq) {
+        if ((mouseWheel != 0 && mouseInFreq) || saved_cmd_spectrum_shift != 0) {
             viewOffset -= (double)mouseWheel * viewBandwidth / 20.0;
 
             if (viewOffset + (viewBandwidth / 2.0) > wholeBandwidth / 2.0) {

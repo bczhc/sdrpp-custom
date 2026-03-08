@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <gui/menus/theme.h>
 #include <backend.h>
+#include <gui/commands.h>
 
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include <stb_image_resize.h>
@@ -86,6 +87,10 @@ int sdrpp_main(int argc, char* argv[]) {
     // Set error mode to avoid abnoxious popups
     SetErrorMode(SEM_NOOPENFILEERRORBOX | SEM_NOGPFAULTERRORBOX | SEM_FAILCRITICALERRORS);
 #endif
+
+    if (!serverMode) {
+        setupCommandInputReader();
+    }
 
     // Check root directory
     std::string root = (std::string)core::args["root"];
