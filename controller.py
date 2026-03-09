@@ -8,7 +8,7 @@ from evdev import InputDevice, ecodes
 FIFO_PATH = './command'
 DEVICE_PATH = '/dev/input/by-id/usb-Flydigi_Flydigi_Direwolf_4_Flydigi_Direwolf_4-event-joystick'
 
-THUMBL_VALUES = [0.017517]
+THUMBL_VALUES = [0.017517, 1.0]
 DPAD_Y_VAL = 3.0          
 STICK_Y_VAL = 0.01        
 STICK_X_FN_VAL = 0.1      
