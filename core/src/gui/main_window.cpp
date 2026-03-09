@@ -701,6 +701,13 @@ void MainWindow::draw() {
         }
     }
 
+    {
+        std::string buttonLabel = "Lock\nf_c\n" + std::to_string((int) ImGui::centerFreqLocked);
+        if (ImGui::Button(buttonLabel.c_str())) {
+            ImGui::centerFreqLocked = !ImGui::centerFreqLocked;
+        }
+    }
+
     ImGui::EndChild();
 
     gui::waterfall.setFFTMin(fftMin);
