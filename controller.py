@@ -5,13 +5,13 @@ import struct
 from evdev import InputDevice, ecodes
 
 # --- 常量配置区 ---
-FIFO_PATH = './command'
+FIFO_PATH = '/home/bczhc/command'
 DEVICE_PATH = '/dev/input/by-id/usb-Flydigi_Flydigi_Direwolf_4_Flydigi_Direwolf_4-event-joystick'
 
 THUMBL_VALUES = [0.017517, 1.0]
 DPAD_Y_VAL = 3.0          
 STICK_Y_VAL = 0.01        
-STICK_X_FN_VAL = 0.1      
+STICK_X_FN_VAL = 0.01
 
 BASE_INTERVAL = 0.05      
 MAX_STICK_VALUE = 32767   
@@ -20,7 +20,7 @@ MAX_STICK_VALUE = 32767
 state = {
     "dir_x": 0,        # 0:停, 1:左, 2:右
     "dir_y": 0,        # 0:停, 1:上, 2:下
-    "is_max_x": False, # 仅 X 轴触发倍速
+    "is_max_x": False, 
     "fn_pressed": False, 
     "running": True,
     "thumbl_idx": 0    
@@ -36,28 +36,24 @@ def writer_thread(fifo_fd):
     while state["running"]:
         active = False
         
-        # 1. 处理 X 轴 (左右) - 优先级最高
+        # 1. 处理 X 轴 (左右)
         if state["dir_x"] != 0:
             active = True
-            # 倍速逻辑：仅在 X 轴推到底时 interval 减半
             current_interval = BASE_INTERVAL / 2 if state["is_max_x"] else BASE_INTERVAL
-            
             if state["fn_pressed"]:
-                # Fn 按下：左推负，右推正 (0x06)
                 val = -STICK_X_FN_VAL if state["dir_x"] == 1 else STICK_X_FN_VAL
                 os.write(fifo_fd, struct.pack('<Bf', 0x06, val))
             else:
-                # Fn 未按下：左推 0x02, 右推 0x01 (注意这里已按要求反转)
+                # 左推 0x02, 右推 0x01
                 os.write(fifo_fd, b'\x02' if state["dir_x"] == 1 else b'\x01')
-            
             time.sleep(current_interval)
         
-        # 2. 处理 Y 轴 (上下) - 仅在 X 轴静止时工作，固定倍速
+        # 2. 处理 Y 轴 (上下)
         elif state["dir_y"] != 0:
             active = True
             val = -STICK_Y_VAL if state["dir_y"] == 1 else STICK_Y_VAL
             os.write(fifo_fd, struct.pack('<Bf', 0x07, val))
-            time.sleep(BASE_INTERVAL) # Y 轴固定 1 倍速
+            time.sleep(BASE_INTERVAL)
 
         else:
             time.sleep(0.01)
@@ -84,24 +80,25 @@ def main():
                     if event.value == -1: os.write(fifo_fd, struct.pack('<Bf', 0x05, -DPAD_Y_VAL))
                     elif event.value == 1: os.write(fifo_fd, struct.pack('<Bf', 0x05, DPAD_Y_VAL))
 
-                # Left Stick X轴 (左右) - 包含反向逻辑与倍速判定
+                # Left Stick X轴 (左右)
                 elif event.code == ecodes.ABS_X:
-                    val = event.value
-                    state["is_max_x"] = abs(val) >= (MAX_STICK_VALUE - 100)
-                    if val < -8000: 
-                        state["dir_x"] = 1 # 左推状态
-                        state["dir_y"] = 0 
-                    elif val > 8000: 
-                        state["dir_x"] = 2 # 右推状态
-                        state["dir_y"] = 0 
-                    else: 
+                    # 只有在 Y 轴没有动作时，才允许进入 X 轴逻辑
+                    if state["dir_y"] == 0:
+                        val = event.value
+                        state["is_max_x"] = abs(val) >= (MAX_STICK_VALUE - 100)
+                        if val < -16000: state["dir_x"] = 1 # 左
+                        elif val > 16000: state["dir_x"] = 2 # 右
+                        else: state["dir_x"] = 0
+                    else:
                         state["dir_x"] = 0
 
                 # Left Stick Y轴 (上下)
                 elif event.code == ecodes.ABS_Y:
+                    # 只有在 X 轴没有动作时，才允许进入 Y 轴逻辑
                     if state["dir_x"] == 0:
-                        if event.value < -8000: state["dir_y"] = 1
-                        elif event.value > 8000: state["dir_y"] = 2
+                        val = event.value
+                        if val < -8000: state["dir_y"] = 1 # 上
+                        elif val > 8000: state["dir_y"] = 2 # 下
                         else: state["dir_y"] = 0
                     else:
                         state["dir_y"] = 0

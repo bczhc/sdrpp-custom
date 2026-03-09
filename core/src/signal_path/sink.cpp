@@ -3,6 +3,7 @@
 #include <imgui/imgui.h>
 #include <gui/style.h>
 #include <gui/icons.h>
+#include <gui/commands.h>
 
 #include <core.h>
 
@@ -289,6 +290,16 @@ void SinkManager::showVolumeSlider(std::string name, std::string prefix, float w
     }
 
     ImGui::SameLine();
+
+    {
+        auto cmd_value = cmd_volume_delta.load();
+        if (cmd_value != 0.0) {
+            cmd_volume_delta.store(0.0);
+            stream->guiVolume += cmd_value;
+            if (stream->guiVolume > 1.0) stream->guiVolume = 1.0;
+            if (stream->guiVolume < 0.0) stream->guiVolume = 0.0;
+        }
+    }
 
     ImGui::SetNextItemWidth(width - height - sliderOffset);
     ImGui::SetCursorPosY(ypos + ((height - sliderHeight) / 2.0f) + btnBorder);
