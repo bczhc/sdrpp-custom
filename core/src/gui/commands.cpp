@@ -19,16 +19,7 @@ std::atomic<float> cmd_fft_min_change(0.0);
 std::atomic<float> cmd_volume_delta; // 0x06
 std::atomic<float> cmd_zoom_factor_delta; // 0x07
 
-void commandInputWorker() {
-    const char* pipePath = "./command";
-
-    // 1. 检查文件是否存在
-    struct stat st;
-    if (stat(pipePath, &st) != 0) {
-        return;
-    }
-
-    // 2. 打开 Pipe (以只读模式阻塞打开)
+void openCommandFifo(const char* pipePath) { // 2. 打开 Pipe (以只读模式阻塞打开)
     int fd = open(pipePath, O_RDONLY);
     if (fd == -1) return;
 
@@ -91,6 +82,19 @@ void commandInputWorker() {
 
     close(fd);
     flog::info("Command pipe closed.");
+}
+void commandInputWorker() {
+    const char* pipePath = "./command";
+
+    // 1. 检查文件是否存在
+    struct stat st{};
+    if (stat(pipePath, &st) != 0) {
+        return;
+    }
+    for (;;) {
+        openCommandFifo(pipePath);
+        sleep(1);
+    }
 }
 
 void setupCommandInputReader() {
