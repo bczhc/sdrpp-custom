@@ -648,8 +648,9 @@ void MainWindow::draw() {
         auto saved_value = cmd_zoom_factor.load();
         if (saved_value != 0.0) {
             cmd_zoom_factor.store(0.0);
-            bw = sqrt((double)saved_value);
-            updateZoom(saved_value);
+            bw = saved_value;
+            bw = std::clamp(bw, 0.0f, 1.0f);
+            updateZoom((double) bw * (double) bw);
         }
     }
     {
@@ -657,6 +658,7 @@ void MainWindow::draw() {
         if (saved_value != 0.0) {
             cmd_zoom_factor_delta.store(0.0);
             bw += saved_value;
+            bw = std::clamp(bw, 0.0f, 1.0f);
             double factor = (double) bw * (double) bw;
             updateZoom(factor);
         }
