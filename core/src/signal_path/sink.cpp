@@ -291,23 +291,27 @@ void SinkManager::showVolumeSlider(std::string name, std::string prefix, float w
 
     ImGui::SameLine();
 
+    auto updateVolume = [&stream, &name](SinkManager *self){
+        stream->setVolume(stream->guiVolume);
+        core::configManager.acquire();
+        self->saveStreamConfig(name);
+        core::configManager.release(true);
+    };
+
     {
         auto cmd_value = cmd_volume_delta.load();
         if (cmd_value != 0.0) {
             cmd_volume_delta.store(0.0);
             stream->guiVolume += cmd_value;
-            if (stream->guiVolume > 1.0) stream->guiVolume = 1.0;
-            if (stream->guiVolume < 0.0) stream->guiVolume = 0.0;
+            stream->guiVolume = std::clamp(stream->guiVolume, 0.0f, 1.0f);
+            updateVolume(this);
         }
     }
 
     ImGui::SetNextItemWidth(width - height - sliderOffset);
     ImGui::SetCursorPosY(ypos + ((height - sliderHeight) / 2.0f) + btnBorder);
     if (ImGui::SliderFloat((prefix + name).c_str(), &stream->guiVolume, 0.0f, 1.0f, "")) {
-        stream->setVolume(stream->guiVolume);
-        core::configManager.acquire();
-        saveStreamConfig(name);
-        core::configManager.release(true);
+        updateVolume(this);
     }
     if (sameLine) { ImGui::SetCursorPosY(ypos); }
     //ImGui::SetCursorPosY(ypos);
