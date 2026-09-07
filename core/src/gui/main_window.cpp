@@ -262,6 +262,26 @@ void MainWindow::draw() {
     ImGui::Begin("Main", NULL, WINDOW_FLAGS);
     ImVec4 textCol = ImGui::GetStyleColorVec4(ImGuiCol_Text);
 
+    // Keyboard controls mirroring the gamepad / FIFO commands.
+    // a/d = shift right/left, w/s = zoom out/in, r/f = FFT floor down/up.
+    // Holding Shift while pressing w/s falls back to fast per-frame zoom.
+    if (!ImGui::GetIO().WantTextInput) {
+        if (ImGui::IsKeyPressed(ImGuiKey_A)) { cmd_spectrum_shift.store(1); }
+        else if (ImGui::IsKeyPressed(ImGuiKey_D)) { cmd_spectrum_shift.store(-1); }
+        if (ImGui::GetIO().KeyShift) {
+            if (ImGui::IsKeyDown(ImGuiKey_W)) { cmd_zoom_factor_delta.store(-0.01f); }
+            if (ImGui::IsKeyDown(ImGuiKey_S)) { cmd_zoom_factor_delta.store(0.01f); }
+        }
+        else {
+            if (ImGui::IsKeyPressed(ImGuiKey_W)) { cmd_zoom_factor_delta.store(-0.01f); }
+            if (ImGui::IsKeyPressed(ImGuiKey_S)) { cmd_zoom_factor_delta.store(0.01f); }
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_R, false)) { cmd_fft_min_change.store(-3.0f); }
+        if (ImGui::IsKeyPressed(ImGuiKey_F, false)) { cmd_fft_min_change.store(3.0f); }
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape, false)) { cmd_panel_toggle.store(true); }
+        if (ImGui::IsKeyPressed(ImGuiKey_Space, false)) { setPlayState(!playing); }
+    }
+
     ImGui::WaterfallVFO* vfo = NULL;
     if (gui::waterfall.selectedVFO != "") {
         vfo = gui::waterfall.vfos[gui::waterfall.selectedVFO];
@@ -661,6 +681,20 @@ void MainWindow::draw() {
             bw = std::clamp(bw, 0.0f, 1.0f);
             double factor = (double) bw * (double) bw;
             updateZoom(factor);
+        }
+    }
+
+    // "x" toggles between the current zoom and the minimum (full-bandwidth) zoom.
+    if (!ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_X, false)) {
+        if (zoomMemory >= 0.0f) {
+            bw = zoomMemory;
+            updateZoom((double)bw * (double)bw);
+            zoomMemory = -1.0f;
+        }
+        else if (bw < 1.0f) {
+            zoomMemory = bw;
+            bw = 1.0f;
+            updateZoom(1.0);
         }
     }
 

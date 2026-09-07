@@ -48,6 +48,7 @@ private:
     float fftMin = -70.0;
     float fftMax = 0.0;
     float bw = 8000000;
+    float zoomMemory = -1.0f; // remembered zoom for the "x" toggle; -1 = none
     bool playing = false;
     bool showCredits = false;
     std::string audioStreamName = "";

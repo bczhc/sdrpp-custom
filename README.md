@@ -10,6 +10,8 @@ A personal fork of [SDR++](https://github.com/AlexandreRouma/SDRPlusPlus).
   the system IME, rendered with a merged CJK font.
 - **Gamepad control** — drive the waterfall with a gaming controller via
   `controller.py`.
+- **Keyboard controls** — navigate the waterfall and control playback from the
+  keyboard.
 - **Lock f_c** — keep the center frequency fixed while navigating the spectrum.
 - **Lock view** — pin the view in place and move the center frequency instead.
 - **Extra UI scales** — added 133% and 150% to the UI scale menu.
@@ -94,6 +96,21 @@ Default mapping (Flydigi Direwolf 4; edit the script to remap):
 | Left bumper | Zoom to maximum |
 | Left stick click | Cycle zoom presets |
 | Select / Back | Toggle the menu |
+
+## Keyboard controls
+
+| Key | Action |
+|---|---|
+| `a` / `d` | Shift the spectrum view right / left |
+| `w` / `s` | Zoom out / in (hold `Shift` for fast zoom) |
+| `r` / `f` | Lower / raise the FFT floor by 3 dB |
+| `x` | Toggle between the current zoom and the minimum zoom |
+| `Space` | Play / pause |
+| `Esc` | Toggle the menu panel |
+
+`x` remembers the current zoom level and zooms out to the minimum; pressing it
+again restores the remembered zoom. These shortcuts are ignored while a text
+field is focused, so they don't interfere with typing.
 
 ## Lock f_c and Lock view
 
