@@ -122,11 +122,7 @@ namespace displaymenu {
         core::configManager.release(true);
     }
 
-    void checkKeybinds() {
-        if (ImGui::IsKeyPressed(ImGuiKey_Home, false)) {
-            setWaterfallShown(!showWaterfall);
-        }
-    }
+    void checkKeybinds() {}
 
     void draw(void* ctx) {
         float menuWidth = ImGui::GetContentRegionAvail().x;

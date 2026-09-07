@@ -112,6 +112,23 @@ Default mapping (Flydigi Direwolf 4; edit the script to remap):
 again restores the remembered zoom. These shortcuts are ignored while a text
 field is focused, so they don't interfere with typing.
 
+Built-in keybindings (from upstream SDR++):
+
+| Context | Key | Action |
+|---|---|---|
+| Over the waterfall / FFT | `←` / `→` | Tune the selected VFO by one snap interval |
+| Over the waterfall / FFT | scroll | Tune the VFO |
+| Over the waterfall / FFT | `Shift` + scroll | Coarse tuning (×10) |
+| Over the waterfall / FFT | `Alt` + scroll | Fine tuning (×0.1) |
+| Over the waterfall / FFT | `PageUp` / `PageDown` | Cycle through VFOs |
+| Over the frequency scale | `←` / `→` | Pan the spectrum view |
+| Frequency box (hover a digit) | `↑` / `↓` | Increment / decrement the digit |
+| Frequency box (hover a digit) | `←` / `Backspace` / `→` | Move the cursor |
+| Frequency box (hover a digit) | `0`–`9` | Type digits |
+| Frequency box (hover a digit) | `Delete` / `Enter` | Zero the remaining digits |
+| Frequency box | `Ctrl+C` / `Ctrl+Insert` | Copy frequency (`Cmd+C` on macOS) |
+| Frequency box | `Ctrl+V` / `Shift+Insert` | Paste frequency |
+
 ## Lock f_c and Lock view
 
 Both switches sit in the waterfall controls, next to the zoom slider.
