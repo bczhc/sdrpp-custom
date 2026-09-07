@@ -510,7 +510,7 @@ void MainWindow::draw() {
     }
 
     // Reset waterfall lock
-    lockWaterfallControls = showCredits;
+    lockWaterfallControls = showCredits || radiolog::isOpen();
 
     // Handle menu resize
     ImVec2 winSize = ImGui::GetWindowSize();

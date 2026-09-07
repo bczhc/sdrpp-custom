@@ -2,4 +2,5 @@
 
 namespace radiolog {
     void show();
+    bool isOpen();
 }

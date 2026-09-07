@@ -19,6 +19,8 @@ namespace radiolog {
     bool open = false;
     bool justOpened = false;
 
+    bool isOpen() { return open; }
+
     char freqBuf[64] = {0};
     char textBuf[2048] = {0};
     char tailerBuf[128] = {0};
@@ -124,8 +126,6 @@ namespace radiolog {
         }
 
         if (!open) { return; }
-
-        gui::mainWindow.lockWaterfallControls = true;
 
         ImVec2 dispSize = ImGui::GetIO().DisplaySize;
         ImVec2 center(dispSize.x / 2.0f, dispSize.y / 2.0f);
