@@ -710,6 +710,13 @@ void MainWindow::draw() {
         }
     }
 
+    {
+        std::string buttonLabel = "Lock\nview\n" + std::to_string((int) ImGui::viewLocked);
+        if (ImGui::Button(buttonLabel.c_str())) {
+            ImGui::viewLocked = !ImGui::viewLocked;
+        }
+    }
+
     ImGui::EndChild();
 
     gui::waterfall.setFFTMin(fftMin);

@@ -92,6 +92,7 @@ inline void doZoom(int offset, int width, int inSize, int outSize, float* in, fl
 
 namespace ImGui {
     bool centerFreqLocked = false;
+    bool viewLocked = false;
 
     WaterFall::WaterFall() {
         fftMin = -70.0;
@@ -381,22 +382,28 @@ namespace ImGui {
             lastDrag = drag.x;
             double viewDelta = deltax * (viewBandwidth / (double)dataWidth);
 
-            viewOffset -= viewDelta;
-
-            if (viewOffset + (viewBandwidth / 2.0) > wholeBandwidth / 2.0) {
-                double freqOffset = (viewOffset + (viewBandwidth / 2.0)) - (wholeBandwidth / 2.0);
-                viewOffset = (wholeBandwidth / 2.0) - (viewBandwidth / 2.0);
-                if (!centerFrequencyLocked && !centerFreqLocked) {
-                    centerFreq += freqOffset;
-                    centerFreqMoved = true;
-                }
+            if (viewLocked) {
+                centerFreq -= viewDelta;
+                centerFreqMoved = true;
             }
-            if (viewOffset - (viewBandwidth / 2.0) < -(wholeBandwidth / 2.0)) {
-                double freqOffset = (viewOffset - (viewBandwidth / 2.0)) + (wholeBandwidth / 2.0);
-                viewOffset = (viewBandwidth / 2.0) - (wholeBandwidth / 2.0);
-                if (!centerFrequencyLocked && !centerFreqLocked) {
-                    centerFreq += freqOffset;
-                    centerFreqMoved = true;
+            else {
+                viewOffset -= viewDelta;
+
+                if (viewOffset + (viewBandwidth / 2.0) > wholeBandwidth / 2.0) {
+                    double freqOffset = (viewOffset + (viewBandwidth / 2.0)) - (wholeBandwidth / 2.0);
+                    viewOffset = (wholeBandwidth / 2.0) - (viewBandwidth / 2.0);
+                    if (!centerFrequencyLocked && !centerFreqLocked) {
+                        centerFreq += freqOffset;
+                        centerFreqMoved = true;
+                    }
+                }
+                if (viewOffset - (viewBandwidth / 2.0) < -(wholeBandwidth / 2.0)) {
+                    double freqOffset = (viewOffset - (viewBandwidth / 2.0)) + (wholeBandwidth / 2.0);
+                    viewOffset = (viewBandwidth / 2.0) - (wholeBandwidth / 2.0);
+                    if (!centerFrequencyLocked && !centerFreqLocked) {
+                        centerFreq += freqOffset;
+                        centerFreqMoved = true;
+                    }
                 }
             }
 
@@ -420,23 +427,31 @@ namespace ImGui {
 
         // If the mouse wheel is moved on the frequency scale
         if ((mouseWheel != 0 && mouseInFreq) || saved_cmd_spectrum_shift != 0) {
-            viewOffset -= (double)mouseWheel * viewBandwidth / 20.0;
+            double viewDelta = (double)mouseWheel * viewBandwidth / 20.0;
 
-            if (viewOffset + (viewBandwidth / 2.0) > wholeBandwidth / 2.0) {
-                double freqOffset = (viewOffset + (viewBandwidth / 2.0)) - (wholeBandwidth / 2.0);
-                if (centerFreqLocked) freqOffset = 0.0;
-                viewOffset = (wholeBandwidth / 2.0) - (viewBandwidth / 2.0);
-                centerFreq += freqOffset;
-                flog::info("centerFreq changed 1");
+            if (viewLocked) {
+                centerFreq -= viewDelta;
                 centerFreqMoved = true;
             }
-            if (viewOffset - (viewBandwidth / 2.0) < -(wholeBandwidth / 2.0)) {
-                double freqOffset = (viewOffset - (viewBandwidth / 2.0)) + (wholeBandwidth / 2.0);
-                if (centerFreqLocked) freqOffset = 0.0;
-                viewOffset = (viewBandwidth / 2.0) - (wholeBandwidth / 2.0);
-                centerFreq += freqOffset;
-                flog::info("centerFreq changed 2");
-                centerFreqMoved = true;
+            else {
+                viewOffset -= viewDelta;
+
+                if (viewOffset + (viewBandwidth / 2.0) > wholeBandwidth / 2.0) {
+                    double freqOffset = (viewOffset + (viewBandwidth / 2.0)) - (wholeBandwidth / 2.0);
+                    if (centerFreqLocked) freqOffset = 0.0;
+                    viewOffset = (wholeBandwidth / 2.0) - (viewBandwidth / 2.0);
+                    centerFreq += freqOffset;
+                    flog::info("centerFreq changed 1");
+                    centerFreqMoved = true;
+                }
+                if (viewOffset - (viewBandwidth / 2.0) < -(wholeBandwidth / 2.0)) {
+                    double freqOffset = (viewOffset - (viewBandwidth / 2.0)) + (wholeBandwidth / 2.0);
+                    if (centerFreqLocked) freqOffset = 0.0;
+                    viewOffset = (viewBandwidth / 2.0) - (wholeBandwidth / 2.0);
+                    centerFreq += freqOffset;
+                    flog::info("centerFreq changed 2");
+                    centerFreqMoved = true;
+                }
             }
 
             lowerFreq = (centerFreq + viewOffset) - (viewBandwidth / 2.0);

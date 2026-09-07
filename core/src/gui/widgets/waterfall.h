@@ -12,6 +12,7 @@
 
 namespace ImGui {
     extern bool centerFreqLocked;
+    extern bool viewLocked;
 
     class WaterfallVFO {
     public:
