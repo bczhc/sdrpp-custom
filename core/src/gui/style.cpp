@@ -12,6 +12,7 @@ namespace style {
     ImVector<ImWchar> baseRanges;
     ImVector<ImWchar> bigRanges;
     ImVector<ImWchar> hugeRanges;
+    ImVector<ImWchar> cjkRanges;
 
 #ifndef __ANDROID__
     float uiScale = 1.0f;
@@ -46,6 +47,23 @@ namespace style {
         
         // Add bigger fonts for frequency select and title
         baseFont = fonts->AddFontFromFileTTF(((std::string)(resDir + "/fonts/Roboto-Medium.ttf")).c_str(), 16.0f * uiScale, NULL, baseRanges.Data);
+
+        // Merge a CJK font into baseFont for Chinese glyphs (the bundled Roboto has none).
+        // Must be added right after baseFont: MergeMode targets the most recently added font.
+        const std::string cjkFontPath = "/usr/share/fonts/adobe-source-han-sans/SourceHanSansCN-Regular.otf";
+        if (std::filesystem::exists(cjkFontPath)) {
+            ImFontGlyphRangesBuilder cjkBuilder;
+            cjkBuilder.AddRanges(fonts->GetGlyphRangesChineseFull());
+            cjkBuilder.BuildRanges(&cjkRanges);
+
+            ImFontConfig cjkCfg;
+            cjkCfg.MergeMode = true;
+            fonts->AddFontFromFileTTF(cjkFontPath.c_str(), 16.0f * uiScale, &cjkCfg, cjkRanges.Data);
+        }
+        else {
+            flog::warn("CJK font not found at {0}, Chinese text will not render", cjkFontPath);
+        }
+
         bigFont = fonts->AddFontFromFileTTF(((std::string)(resDir + "/fonts/Roboto-Medium.ttf")).c_str(), 45.0f * uiScale, NULL, bigRanges.Data);
         hugeFont = fonts->AddFontFromFileTTF(((std::string)(resDir + "/fonts/Roboto-Medium.ttf")).c_str(), 128.0f * uiScale, NULL, hugeRanges.Data);
 
