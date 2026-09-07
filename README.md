@@ -2,6 +2,8 @@
 
 A personal fork of [SDR++](https://github.com/AlexandreRouma/SDRPlusPlus).
 
+Most features are built with Claude:deepseek-v4-pro.
+
 ## Changes from upstream
 
 - **Baseband noise reduction** — a Log-MMSE denoiser for the baseband (IQ)
