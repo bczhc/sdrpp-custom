@@ -1,0 +1,3 @@
+[submodule "core/glfw-mc"]
+	path = core/glfw-mc
+	url = https://github.com/bczhc/glfw-mc.git

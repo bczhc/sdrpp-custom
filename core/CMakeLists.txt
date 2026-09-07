@@ -50,12 +50,15 @@ if (OPT_BACKEND_GLFW)
         find_package(glfw3 CONFIG REQUIRED)
         target_link_libraries(sdrpp_core PUBLIC glfw)
     else()
-        find_package(PkgConfig)
-        pkg_check_modules(GLFW3 REQUIRED glfw3)
-
-        target_include_directories(sdrpp_core PUBLIC ${GLFW3_INCLUDE_DIRS})
-        target_link_directories(sdrpp_core PUBLIC ${GLFW3_LIBRARY_DIRS})
-        target_link_libraries(sdrpp_core PUBLIC ${GLFW3_LIBRARIES})
+        # Build the vendored GLFW fork (glfw-mc), which adds Wayland input method
+        # (IME) support that upstream GLFW still lacks.
+        set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+        set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+        set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+        set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
+        set(GLFW_LIBRARY_TYPE STATIC CACHE STRING "" FORCE)
+        add_subdirectory("glfw-mc")
+        target_link_libraries(sdrpp_core PUBLIC glfw)
     endif()
 endif (OPT_BACKEND_GLFW)
 if (OPT_BACKEND_ANDROID)
@@ -122,21 +125,18 @@ else()
 
     pkg_check_modules(FFTW3 REQUIRED fftw3f)
     pkg_check_modules(VOLK REQUIRED volk)
-    pkg_check_modules(GLFW3 REQUIRED glfw3)
     pkg_check_modules(LIBZSTD REQUIRED libzstd)
 
     target_include_directories(sdrpp_core PUBLIC
         ${OPENGL_INCLUDE_DIRS}
         ${FFTW3_INCLUDE_DIRS}
-        ${GLFW3_INCLUDE_DIRS}
         ${VOLK_INCLUDE_DIRS}
         ${LIBZSTD_INCLUDE_DIRS}
     )
-    
+
     target_link_directories(sdrpp_core PUBLIC
         ${OPENGL_LIBRARY_DIRS}
         ${FFTW3_LIBRARY_DIRS}
-        ${GLFW3_LIBRARY_DIRS}
         ${VOLK_LIBRARY_DIRS}
         ${LIBZSTD_LIBRARY_DIRS}
     )
@@ -144,7 +144,6 @@ else()
     target_link_libraries(sdrpp_core PUBLIC
         ${OPENGL_LIBRARIES}
         ${FFTW3_LIBRARIES}
-        ${GLFW3_LIBRARIES}
         ${VOLK_LIBRARIES}
         ${LIBZSTD_LIBRARIES}
     )

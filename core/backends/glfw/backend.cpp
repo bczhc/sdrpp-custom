@@ -238,7 +238,21 @@ namespace backend {
             glfwPollEvents();
 
             beginFrame();
-            
+
+            // Enable/disable the input method (IME) depending on whether a text
+            // field is focused. GLFW_IME only exists on the vendored glfw-mc
+            // fork (upstream GLFW has no Wayland IME support), so guard it.
+#ifdef GLFW_IME
+            {
+                static bool imeEnabled = false;
+                bool wantText = ImGui::GetIO().WantTextInput;
+                if (wantText != imeEnabled) {
+                    imeEnabled = wantText;
+                    glfwSetInputMode(window, GLFW_IME, wantText ? GLFW_TRUE : GLFW_FALSE);
+                }
+            }
+#endif
+
             if (_maximized != maximized) {
                 _maximized = maximized;
                 core::configManager.acquire();
