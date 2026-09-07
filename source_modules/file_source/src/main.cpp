@@ -43,6 +43,9 @@ public:
         handler.startHandler = start;
         handler.stopHandler = stop;
         handler.tuneHandler = tune;
+        handler.seekHandler = seek;
+        handler.getPositionHandler = getPosition;
+        handler.getDurationHandler = getDuration;
         handler.stream = &stream;
         sigpath::sourceManager.registerSource("File", &handler);
     }
@@ -104,13 +107,30 @@ private:
         _this->workerThread.join();
         _this->stream.clearWriteStop();
         _this->running = false;
-        _this->reader->rewind();
         flog::info("FileSourceModule '{0}': Stop!", _this->name);
     }
 
     static void tune(double freq, void* ctx) {
         FileSourceModule* _this = (FileSourceModule*)ctx;
         flog::info("FileSourceModule '{0}': Tune: {1}!", _this->name, freq);
+    }
+
+    static void seek(double seconds, void* ctx) {
+        FileSourceModule* _this = (FileSourceModule*)ctx;
+        if (_this->reader == NULL) { return; }
+        _this->reader->seek(seconds);
+    }
+
+    static double getPosition(void* ctx) {
+        FileSourceModule* _this = (FileSourceModule*)ctx;
+        if (_this->reader == NULL) { return 0.0; }
+        return _this->reader->getPosition();
+    }
+
+    static double getDuration(void* ctx) {
+        FileSourceModule* _this = (FileSourceModule*)ctx;
+        if (_this->reader == NULL) { return 0.0; }
+        return _this->reader->getDuration();
     }
 
     static void menuHandler(void* ctx) {

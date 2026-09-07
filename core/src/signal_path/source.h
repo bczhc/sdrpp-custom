@@ -11,6 +11,20 @@ public:
     SourceManager();
 
     struct SourceHandler {
+        SourceHandler() {
+            stream = NULL;
+            menuHandler = NULL;
+            selectHandler = NULL;
+            deselectHandler = NULL;
+            startHandler = NULL;
+            stopHandler = NULL;
+            tuneHandler = NULL;
+            seekHandler = NULL;
+            getPositionHandler = NULL;
+            getDurationHandler = NULL;
+            ctx = NULL;
+        }
+
         dsp::stream<dsp::complex_t>* stream;
         void (*menuHandler)(void* ctx);
         void (*selectHandler)(void* ctx);
@@ -18,6 +32,9 @@ public:
         void (*startHandler)(void* ctx);
         void (*stopHandler)(void* ctx);
         void (*tuneHandler)(double freq, void* ctx);
+        void (*seekHandler)(double seconds, void* ctx);
+        double (*getPositionHandler)(void* ctx);
+        double (*getDurationHandler)(void* ctx);
         void* ctx;
     };
 
@@ -33,6 +50,9 @@ public:
     void start();
     void stop();
     void tune(double freq);
+    void seek(double seconds);
+    double getPosition();
+    double getDuration();
     void setTuningOffset(double offset);
     void setTuningMode(TuningMode mode);
     void setPanadapterIF(double freq);

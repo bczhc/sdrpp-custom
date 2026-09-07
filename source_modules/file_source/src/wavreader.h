@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <fstream>
+#include <mutex>
 
 #define WAV_SIGNATURE       "RIFF"
 #define WAV_TYPE            "WAVE"
@@ -39,6 +40,7 @@ public:
     }
 
     void readSamples(void* data, size_t size) {
+        std::lock_guard<std::mutex> lck(mtx);
         char* _data = (char*)data;
         file.read(_data, size);
         int read = file.gcount();
@@ -47,11 +49,51 @@ public:
             file.seekg(sizeof(WavHeader_t));
             file.read(&_data[read], size - read);
         }
-        bytesRead += size;
     }
 
     void rewind() {
+        std::lock_guard<std::mutex> lck(mtx);
+        file.clear();
         file.seekg(sizeof(WavHeader_t));
+    }
+
+    // Seek to a position expressed in seconds from the start of the file.
+    void seek(double seconds) {
+        std::lock_guard<std::mutex> lck(mtx);
+        double rate = (double)hdr.sampleRate;
+        uint64_t frameBytes = (uint64_t)hdr.bytesPerSample;
+        if (rate <= 0.0 || frameBytes == 0) { return; }
+
+        // Convert seconds to a whole number of IQ frames (one frame = one
+        // complex sample = hdr.bytesPerSample bytes). Seeking to a byte offset
+        // that isn't a multiple of frameBytes would swap the I/Q channels.
+        double frames = seconds * rate;
+        if (frames < 0.0) { frames = 0.0; }
+        uint64_t frame = (uint64_t)frames;
+        uint64_t maxFrame = (uint64_t)hdr.dataSize / frameBytes;
+        if (frame > maxFrame) { frame = maxFrame; }
+
+        file.clear();
+        file.seekg(sizeof(WavHeader_t) + (std::streamoff)(frame * frameBytes));
+    }
+
+    // Current playback position in seconds.
+    double getPosition() {
+        std::lock_guard<std::mutex> lck(mtx);
+        double rate = (double)hdr.sampleRate;
+        double frameBytes = (double)hdr.bytesPerSample;
+        if (rate <= 0.0 || frameBytes <= 0.0) { return 0.0; }
+        std::streamoff off = file.tellg() - (std::streamoff)sizeof(WavHeader_t);
+        if (off < 0) { off = 0; }
+        return (double)off / (rate * frameBytes);
+    }
+
+    // Total duration of the file in seconds.
+    double getDuration() {
+        double rate = (double)hdr.sampleRate;
+        double frameBytes = (double)hdr.bytesPerSample;
+        if (rate <= 0.0 || frameBytes <= 0.0) { return 0.0; }
+        return (double)hdr.dataSize / (rate * frameBytes);
     }
 
     void close() {
@@ -77,6 +119,6 @@ private:
 
     bool valid = false;
     std::ifstream file;
-    size_t bytesRead = 0;
+    std::mutex mtx;
     WavHeader_t hdr;
 };

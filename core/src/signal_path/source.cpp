@@ -90,6 +90,27 @@ void SourceManager::tune(double freq) {
     currentFreq = freq;
 }
 
+void SourceManager::seek(double seconds) {
+    if (selectedHandler == NULL || selectedHandler->seekHandler == NULL) {
+        return;
+    }
+    selectedHandler->seekHandler(seconds, selectedHandler->ctx);
+}
+
+double SourceManager::getPosition() {
+    if (selectedHandler == NULL || selectedHandler->getPositionHandler == NULL) {
+        return 0.0;
+    }
+    return selectedHandler->getPositionHandler(selectedHandler->ctx);
+}
+
+double SourceManager::getDuration() {
+    if (selectedHandler == NULL || selectedHandler->getDurationHandler == NULL) {
+        return 0.0;
+    }
+    return selectedHandler->getDurationHandler(selectedHandler->ctx);
+}
+
 void SourceManager::setTuningOffset(double offset) {
     tuneOffset = offset;
     tune(currentFreq);

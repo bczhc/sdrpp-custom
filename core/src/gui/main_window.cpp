@@ -498,6 +498,25 @@ void MainWindow::draw() {
     // Process menu keybinds
     displaymenu::checkKeybinds();
 
+    // File source seek bar (full width, only shown while a seekable file is loaded)
+    {
+        double filePos = sigpath::sourceManager.getPosition();
+        double fileDur = sigpath::sourceManager.getDuration();
+        if (fileDur > 0.0) {
+            ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMin().x);
+            ImGui::SetCursorPosY(origY + btnSize.y + (6.0f * style::uiScale));
+            char posText[64];
+            snprintf(posText, sizeof(posText), "%.1f / %.1f s", filePos, fileDur);
+            ImGui::TextUnformatted(posText);
+            ImGui::SameLine();
+            float posF = (float)filePos;
+            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+            if (ImGui::SliderFloat("##file_source_seek", &posF, 0.0f, (float)fileDur, "%.1f s")) {
+                sigpath::sourceManager.seek((double)posF);
+            }
+        }
+    }
+
     // Left Column
     if (showMenu) {
         ImGui::Columns(3, "WindowColumns", false);
