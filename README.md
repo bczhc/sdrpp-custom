@@ -6,6 +6,8 @@ A personal fork of [SDR++](https://github.com/AlexandreRouma/SDRPlusPlus).
 
 - **Baseband noise reduction** — a Log-MMSE denoiser for the baseband (IQ)
   signal, enabled with a "Baseband NR" toggle.
+- **Chinese input (IME)** — on Wayland, type Chinese into text fields through
+  the system IME, rendered with a merged CJK font.
 - **Gamepad control** — drive the waterfall with a gaming controller via
   `controller.py`.
 - **Lock f_c** — keep the center frequency fixed while navigating the spectrum.
@@ -58,6 +60,17 @@ in real time.
 
 Enable the module in the module manager, then flip the "Baseband NR" switch.
 
+## Chinese input (IME)
+
+On Wayland you can type Chinese into text fields through the system IME
+(fcitx5 / ibus). SDR++ builds a vendored GLFW fork that implements the Wayland
+text-input protocol and toggles the IME while a text field is focused. Chinese
+characters are rendered by merging Source Han Sans CN into the UI font.
+
+The CJK font is loaded from
+`/usr/share/fonts/adobe-source-han-sans/SourceHanSansCN-Regular.otf`; if it is
+missing, text still goes in but shows as `?`.
+
 ## Controlling SDR++ with a gamepad
 
 `controller.py` reads a gaming controller and turns it into the commands that
@@ -92,3 +105,11 @@ Both switches sit in the waterfall controls, next to the zoom slider.
 - **Lock view** — when on, scrolling or dragging retunes the center frequency
   directly instead of panning the view. The VFO stays fixed on screen while the
   spectrum scrolls behind it.
+
+## SDR++ server on Android (Termux) / Raspberry Pi
+
+There is a separate [`server` branch](https://github.com/bczhc/sdrpp-custom/tree/server)
+that builds SDR++ as a headless server binary: no GUI, running inside
+[Termux](https://termux.dev) on Android (or on a Raspberry Pi), to serve an
+Airspy / AirspyHF to a remote SDR++ client over the network. Build and run
+instructions are in that branch's README.
