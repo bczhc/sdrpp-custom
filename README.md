@@ -14,6 +14,9 @@ A personal fork of [SDR++](https://github.com/AlexandreRouma/SDRPlusPlus).
   keyboard.
 - **Lock f_c** — keep the center frequency fixed while navigating the spectrum.
 - **Lock view** — pin the view in place and move the center frequency instead.
+- **File source seeking** — seek through a loaded file with a slider and time
+  readout.
+- **Radio log** — press `l` to log the tuned frequency to a text file.
 - **Extra UI scales** — added 133% and 150% to the UI scale menu.
 
 ## Building
@@ -139,6 +142,20 @@ Both switches sit in the waterfall controls, next to the zoom slider.
 - **Lock view** — when on, scrolling or dragging retunes the center frequency
   directly instead of panning the view. The VFO stays fixed on screen while the
   spectrum scrolls behind it.
+
+## File source seeking
+
+A loaded file source gets a seek bar with a current/total time readout at the
+top of the window. Drag to seek — the waterfall is rebuilt so the new position
+lands at the top — and pausing no longer rewinds, so resume continues from the
+same spot.
+
+## Radio log
+
+Press `l` to open a small dialog for logging the tuned frequency. The main box
+is pre-filled with the current frequency in kHz (zero-padded to 5 digits), and
+a "tailer" holds a UTC timestamp. `Ctrl+Enter` appends the line to
+`~/Documents/radio-log.txt` and closes; `Esc` cancels.
 
 ## SDR++ server on Android (Termux) / Raspberry Pi
 
