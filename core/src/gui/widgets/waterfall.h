@@ -11,6 +11,8 @@
 #define WATERFALL_RESOLUTION 1000000
 
 namespace ImGui {
+    extern bool centerFreqLocked;
+
     class WaterfallVFO {
     public:
         void setOffset(double offset);
