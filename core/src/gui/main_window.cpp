@@ -23,6 +23,7 @@
 #include <gui/menus/module_manager.h>
 #include <gui/menus/theme.h>
 #include <gui/dialogs/credits.h>
+#include <gui/dialogs/radio_log.h>
 #include <filesystem>
 #include <signal_path/source.h>
 #include <gui/dialogs/loading_screen.h>
@@ -857,6 +858,8 @@ void MainWindow::draw() {
     if (showCredits) {
         credits::show();
     }
+
+    radiolog::show();
 
     if (demoWindow) {
         ImGui::ShowDemoWindow();
