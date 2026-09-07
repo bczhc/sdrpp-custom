@@ -263,21 +263,26 @@ double IQFrontEnd::getEffectiveSamplerate() {
     return effectiveSr;
 }
 
-void IQFrontEnd::handler(dsp::complex_t* data, int count, void* ctx) {
-    IQFrontEnd* _this = (IQFrontEnd*)ctx;
-
+void IQFrontEnd::computeFFT(const dsp::complex_t* data, float* out) {
     // Apply window
-    volk_32fc_32f_multiply_32fc((lv_32fc_t*)_this->fftInBuf, (lv_32fc_t*)data, _this->fftWindowBuf, _this->_nzFFTSize);
+    volk_32fc_32f_multiply_32fc((lv_32fc_t*)fftInBuf, (lv_32fc_t*)data, fftWindowBuf, _nzFFTSize);
 
     // Execute FFT
-    fftwf_execute(_this->fftwPlan);
+    fftwf_execute(fftwPlan);
+
+    // Convert the complex output of the FFT to dB amplitude
+    volk_32fc_s32f_power_spectrum_32f(out, (lv_32fc_t*)fftOutBuf, _fftSize, _fftSize);
+}
+
+void IQFrontEnd::handler(dsp::complex_t* data, int count, void* ctx) {
+    IQFrontEnd* _this = (IQFrontEnd*)ctx;
 
     // Aquire buffer
     float* fftBuf = _this->_acquireFFTBuffer(_this->_fftCtx);
 
     // Convert the complex output of the FFT to dB amplitude
     if (fftBuf) {
-        volk_32fc_s32f_power_spectrum_32f(fftBuf, (lv_32fc_t*)_this->fftOutBuf, _this->_fftSize, _this->_fftSize);
+        _this->computeFFT(data, fftBuf);
     }
 
     // Release buffer

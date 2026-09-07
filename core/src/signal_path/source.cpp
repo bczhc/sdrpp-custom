@@ -111,6 +111,13 @@ double SourceManager::getDuration() {
     return selectedHandler->getDurationHandler(selectedHandler->ctx);
 }
 
+int SourceManager::readSamples(double seconds, dsp::complex_t* out, int count) {
+    if (selectedHandler == NULL || selectedHandler->readSamplesHandler == NULL) {
+        return 0;
+    }
+    return selectedHandler->readSamplesHandler(seconds, out, count, selectedHandler->ctx);
+}
+
 void SourceManager::setTuningOffset(double offset) {
     tuneOffset = offset;
     tune(currentFreq);

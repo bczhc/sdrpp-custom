@@ -1176,6 +1176,31 @@ namespace ImGui {
         updateWaterfallFb();
     }
 
+    void WaterFall::setHistory(const float* lines, int count) {
+        std::lock_guard<std::recursive_mutex> lck(buf_mtx);
+        std::lock_guard<std::recursive_mutex> lck2(latestFFTMtx);
+        if (rawFFTs == NULL || count <= 0 || lines == NULL) {
+            return;
+        }
+        count = std::min<int>(count, waterfallHeight);
+
+        // Place the newest line at index 0 (currentFFTLine = 0) so it renders at
+        // the top of the waterfall; older lines follow below it.
+        for (int k = 0; k < count; k++) {
+            memcpy(&rawFFTs[(count - 1 - k) * rawFFTSize], &lines[k * rawFFTSize], rawFFTSize * sizeof(float));
+        }
+        currentFFTLine = 0;
+        fftLines = count;
+
+        // Regenerate the top (latest) FFT line from the newest history line.
+        double offsetRatio = viewOffset / (wholeBandwidth / 2.0);
+        int drawDataSize = (viewBandwidth / wholeBandwidth) * rawFFTSize;
+        int drawDataStart = (((double)rawFFTSize / 2.0) * (offsetRatio + 1)) - (drawDataSize / 2);
+        doZoom(drawDataStart, drawDataSize, rawFFTSize, dataWidth, &rawFFTs[0], latestFFT);
+
+        updateWaterfallFb();
+    }
+
     void WaterFall::setBandPlanPos(int pos) {
         bandPlanPos = pos;
     }

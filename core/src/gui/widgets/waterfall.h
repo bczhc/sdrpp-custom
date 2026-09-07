@@ -138,6 +138,12 @@ namespace ImGui {
 
         void setRawFFTSize(int size);
 
+        // Overwrite the whole waterfall history with `count` FFT lines. `lines`
+        // holds `count * rawFFTSize` floats ordered oldest -> newest; the newest
+        // line ends up at the top of the waterfall, as if playback had reached it.
+        void setHistory(const float* lines, int count);
+        int getWaterfallHeight() { return waterfallHeight; }
+
         void setFullWaterfallUpdate(bool fullUpdate);
 
         void setBandPlanPos(int pos);

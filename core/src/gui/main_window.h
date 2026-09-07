@@ -35,6 +35,7 @@ public:
 
 private:
     static void vfoAddedHandler(VFOManager::VFO* vfo, void* ctx);
+    void prefillFileWaterfall(double seekTime);
 
     // FFT Variables
     int fftSize = 8192 * 8;
@@ -65,6 +66,12 @@ private:
 
     bool initComplete = false;
     bool autostart = false;
+
+    // File source seek slider state
+    float fileSeekTarget = 0.0f;
+    bool fileSeekActive = false;
+    bool fileSeekPaused = false;
+    double lastFilePrefillTime = 0.0;
 
     EventHandler<VFOManager::VFO*> vfoCreatedHandler;
 };

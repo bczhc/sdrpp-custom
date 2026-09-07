@@ -46,6 +46,7 @@ public:
         handler.seekHandler = seek;
         handler.getPositionHandler = getPosition;
         handler.getDurationHandler = getDuration;
+        handler.readSamplesHandler = readSamples;
         handler.stream = &stream;
         sigpath::sourceManager.registerSource("File", &handler);
     }
@@ -133,6 +134,12 @@ private:
         return _this->reader->getDuration();
     }
 
+    static int readSamples(double seconds, dsp::complex_t* out, int count, void* ctx) {
+        FileSourceModule* _this = (FileSourceModule*)ctx;
+        if (_this->reader == NULL) { return 0; }
+        return _this->readSamplesAt(seconds, out, count);
+    }
+
     static void menuHandler(void* ctx) {
         FileSourceModule* _this = (FileSourceModule*)ctx;
 
@@ -207,6 +214,23 @@ private:
         if (matches.empty()) { return 0; }
         std::string freqStr = matches[0].str();
         return std::atof(freqStr.substr(0, freqStr.size() - 2).c_str());
+    }
+
+    // Read `count` IQ samples starting at `seconds` into `out`. Returns the
+    // number of samples written (always `count` unless something went wrong).
+    int readSamplesAt(double seconds, dsp::complex_t* out, int count) {
+        if (reader == NULL) { return 0; }
+        reader->seek(seconds);
+        if (float32Mode) {
+            reader->readSamples(out, count * sizeof(dsp::complex_t));
+        }
+        else {
+            int16_t* inBuf = new int16_t[count * 2];
+            reader->readSamples(inBuf, count * 2 * sizeof(int16_t));
+            volk_16i_s32f_convert_32f((float*)out, inBuf, 32768.0f, count * 2);
+            delete[] inBuf;
+        }
+        return count;
     }
 
     FileSelect fileSelect;

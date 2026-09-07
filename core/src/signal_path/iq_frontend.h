@@ -45,6 +45,14 @@ public:
     void setFFTRate(double rate);
     void setFFTWindow(FFTWindow fftWindow);
 
+    // Compute one FFT line (window + FFT + dB power spectrum) into `out`,
+    // which must hold at least getFFTSize() floats. `data` must hold at least
+    // getNZFFTSize() samples. Used to pre-fill the waterfall when seeking.
+    void computeFFT(const dsp::complex_t* data, float* out);
+    int getFFTSize() { return _fftSize; }
+    int getNZFFTSize() { return _nzFFTSize; }
+    double getFFTRate() { return _fftRate; }
+
     void flushInputBuffer();
 
     void start();

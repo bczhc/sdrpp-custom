@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <thread>
 #include <complex>
+#include <algorithm>
+#include <cmath>
 #include <gui/widgets/waterfall.h>
 #include <gui/widgets/frequency_select.h>
 #include <signal_path/iq_frontend.h>
@@ -258,6 +260,50 @@ void MainWindow::vfoAddedHandler(VFOManager::VFO* vfo, void* ctx) {
     sigpath::vfoManager.setCenterOffset(name, _this->initComplete ? newOffset : offset);
 }
 
+void MainWindow::prefillFileWaterfall(double seekTime) {
+    double sr = sigpath::iqFrontEnd.getSampleRate();
+    double fftRate = sigpath::iqFrontEnd.getFFTRate();
+    if (sr <= 0.0 || fftRate <= 0.0) { return; }
+
+    int fftSize = sigpath::iqFrontEnd.getFFTSize();
+    int nz = sigpath::iqFrontEnd.getNZFFTSize();
+    int fftInterval = (int)std::round(sr / fftRate);
+    if (fftSize <= 0 || nz <= 0 || fftInterval <= 0) { return; }
+
+    int H = gui::waterfall.getWaterfallHeight();
+    if (H <= 0) { return; }
+
+    // Map the seek time to the newest waterfall line and clamp to the file length.
+    int totalLines = (int)(sigpath::sourceManager.getDuration() * sr / fftInterval);
+    int newestLine = (int)(seekTime * sr / fftInterval);
+    newestLine = std::clamp<int>(newestLine, 0, std::max<int>(0, totalLines - 1));
+    int count = std::min<int>(H, newestLine + 1);
+
+    if (count > 0) {
+        dsp::complex_t* samples = new dsp::complex_t[nz];
+        float* lines = new float[count * fftSize];
+
+        // Fill lines oldest -> newest so setHistory() can put the newest on top.
+        for (int k = 0; k < count; k++) {
+            int lineIndex = newestLine - (count - 1 - k);
+            double lineSeconds = (double)(lineIndex * fftInterval) / sr;
+            int got = sigpath::sourceManager.readSamples(lineSeconds, samples, nz);
+            if (got < nz) {
+                memset(samples + got, 0, (nz - got) * sizeof(dsp::complex_t));
+            }
+            sigpath::iqFrontEnd.computeFFT(samples, lines + (k * fftSize));
+        }
+
+        gui::waterfall.setHistory(lines, count);
+
+        delete[] samples;
+        delete[] lines;
+    }
+
+    // Move the reader to the seek target (the caller manages pause/resume).
+    sigpath::sourceManager.seek(seekTime);
+}
+
 void MainWindow::draw() {
     ImGui::Begin("Main", NULL, WINDOW_FLAGS);
     ImVec4 textCol = ImGui::GetStyleColorVec4(ImGuiCol_Text);
@@ -509,10 +555,39 @@ void MainWindow::draw() {
             snprintf(posText, sizeof(posText), "%.1f / %.1f s", filePos, fileDur);
             ImGui::TextUnformatted(posText);
             ImGui::SameLine();
-            float posF = (float)filePos;
+
+            // While dragging, keep showing (and seeking to) the drag target instead
+            // of the live playback position so the slider doesn't snap back.
+            float posF = fileSeekActive ? fileSeekTarget : (float)filePos;
             ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-            if (ImGui::SliderFloat("##file_source_seek", &posF, 0.0f, (float)fileDur, "%.1f s")) {
-                sigpath::sourceManager.seek((double)posF);
+            bool seekChanged = ImGui::SliderFloat("##file_source_seek", &posF, 0.0f, (float)fileDur, "%.1f s");
+
+            if (seekChanged) {
+                fileSeekTarget = posF;
+                if (!fileSeekActive) {
+                    // Drag started: pause once and keep it paused for the whole drag.
+                    fileSeekActive = true;
+                    fileSeekPaused = playing;
+                    if (fileSeekPaused) { setPlayState(false); }
+                    lastFilePrefillTime = -1e9;
+                }
+                // Live-update the waterfall while dragging (throttled).
+                if (ImGui::GetTime() - lastFilePrefillTime >= 0.15) {
+                    prefillFileWaterfall((double)posF);
+                    lastFilePrefillTime = ImGui::GetTime();
+                }
+            }
+
+            if (fileSeekActive && ImGui::IsItemDeactivated()) {
+                // Drag ended: final prefill + seek, then resume playback.
+                if (ImGui::IsItemDeactivatedAfterEdit()) {
+                    prefillFileWaterfall((double)fileSeekTarget);
+                }
+                fileSeekActive = false;
+                if (fileSeekPaused) {
+                    fileSeekPaused = false;
+                    setPlayState(true);
+                }
             }
         }
     }
