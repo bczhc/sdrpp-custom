@@ -50,11 +50,11 @@ namespace dsp {
             return *this;
         }
 
-        inline complex_t conj() {
+        inline complex_t conj() const {
             return complex_t{ re, -im };
         }
 
-        inline float phase() {
+        inline float phase() const {
             return atan2f(im, re);
         }
 
@@ -76,7 +76,7 @@ namespace dsp {
             return angle;
         }
 
-        inline float amplitude() {
+        inline float amplitude() const {
             return sqrt((re * re) + (im * im));
         }
 

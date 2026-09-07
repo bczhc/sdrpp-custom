@@ -66,6 +66,7 @@ option(OPT_BUILD_RIGCTL_CLIENT "Rigctl client to make SDR++ act as a panadapter"
 option(OPT_BUILD_RIGCTL_SERVER "Rigctl backend for controlling SDR++ with software like gpredict" ON)
 option(OPT_BUILD_SCANNER "Frequency scanner" ON)
 option(OPT_BUILD_SCHEDULER "Build the scheduler" OFF)
+option(OPT_BUILD_NOISE_REDUCTION_LOGMMSE "LOGMMSE baseband noise reduction (no dependencies required)" ON)
 
 # Other options
 option(USE_INTERNAL_LIBCORRECT "Use an internal version of libcorrect" ON)
@@ -336,6 +337,10 @@ endif (OPT_BUILD_SCANNER)
 if (OPT_BUILD_SCHEDULER)
 add_subdirectory("misc_modules/scheduler")
 endif (OPT_BUILD_SCHEDULER)
+
+if (OPT_BUILD_NOISE_REDUCTION_LOGMMSE)
+add_subdirectory("misc_modules/noise_reduction_logmmse")
+endif (OPT_BUILD_NOISE_REDUCTION_LOGMMSE)
 
 if (MSVC)
     add_executable(sdrpp "src/main.cpp" "win32/resources.rc")
