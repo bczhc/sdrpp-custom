@@ -77,12 +77,18 @@ namespace radiolog {
         file << line << "\n";
     }
 
-    void openPopup() {
+    void openPopup(const char* name) {
         formatFrequency(gui::freqSelect.frequency, freqBuf, sizeof(freqBuf));
 
-        // Pre-fill the main text with the frequency plus a trailing space so the
-        // user can keep typing right after it.
-        snprintf(textBuf, sizeof(textBuf), "%s ", freqBuf);
+        // Pre-fill the main text with the frequency. Opening from the 'l' key
+        // leaves a trailing space to keep typing; opening from a right-click on a
+        // frequency marker appends the marker's name instead.
+        if (name && name[0]) {
+            snprintf(textBuf, sizeof(textBuf), "%s %s", freqBuf, name);
+        }
+        else {
+            snprintf(textBuf, sizeof(textBuf), "%s ", freqBuf);
+        }
 
         char tsBuf[32] = {0};
         formatUtcTime(tsBuf, sizeof(tsBuf));

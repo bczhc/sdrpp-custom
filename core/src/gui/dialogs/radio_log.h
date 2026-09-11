@@ -3,4 +3,5 @@
 namespace radiolog {
     void show();
     bool isOpen();
+    void openPopup(const char* name = nullptr);
 }

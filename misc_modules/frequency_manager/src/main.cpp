@@ -12,6 +12,7 @@
 #include <gui/file_dialogs.h>
 #include <utils/freq_formatting.h>
 #include <gui/dialogs/dialog_box.h>
+#include <gui/dialogs/radio_log.h>
 #include <fstream>
 
 SDRPP_MOD_INFO{
@@ -708,6 +709,13 @@ private:
                     break;
                 }
             }
+        }
+
+        // Right-click on a bookmark label: open the radio log pre-filled with it
+        if (inALabel && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+            radiolog::openPopup(hoveredBookmarkName.c_str());
+            gui::waterfall.inputHandled = true;
+            return;
         }
 
         // Check if mouse was already down
