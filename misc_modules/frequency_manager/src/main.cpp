@@ -193,6 +193,49 @@ private:
         return open;
     }
 
+    bool bookmarkRenameDialog() {
+        bool open = true;
+        gui::mainWindow.lockWaterfallControls = true;
+
+        std::string id = "Rename##freq_manager_rename_popup_" + name;
+        ImGui::OpenPopup(id.c_str());
+
+        if (ImGui::BeginPopup(id.c_str(), ImGuiWindowFlags_NoResize)) {
+            if (ImGui::IsWindowAppearing()) {
+                ImGui::SetKeyboardFocusHere();
+            }
+            ImGui::SetNextItemWidth(200);
+            ImGui::InputText(("##freq_manager_rename_name" + name).c_str(), renameBookmarkBuf, 1023);
+
+            std::string newName(renameBookmarkBuf);
+            bool nameEmpty = newName.empty();
+            bool nameTaken = (newName != renameBookmarkOldName) && (bookmarks.find(newName) != bookmarks.end());
+            bool applyDisabled = nameEmpty || nameTaken;
+
+            bool enter = ImGui::IsKeyPressed(ImGuiKey_Enter, false) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, false);
+            bool cancel = ImGui::IsKeyPressed(ImGuiKey_Escape, false);
+
+            if ((enter || ImGui::Button("OK")) && !applyDisabled) {
+                if (newName != renameBookmarkOldName) {
+                    auto it = bookmarks.find(renameBookmarkOldName);
+                    if (it != bookmarks.end()) {
+                        FrequencyBookmark bm = it->second;
+                        bookmarks.erase(it);
+                        bookmarks[newName] = bm;
+                    }
+                    saveByName(selectedListName);
+                }
+                open = false;
+            }
+            if (cancel) {
+                open = false;
+            }
+
+            ImGui::EndPopup();
+        }
+        return open;
+    }
+
     bool newListDialog() {
         bool open = true;
         gui::mainWindow.lockWaterfallControls = true;
@@ -605,6 +648,9 @@ private:
 
     static void fftRedraw(ImGui::WaterFall::FFTRedrawArgs args, void* ctx) {
         FrequencyManagerModule* _this = (FrequencyManagerModule*)ctx;
+        if (_this->renameBookmarkOpen) {
+            _this->renameBookmarkOpen = _this->bookmarkRenameDialog();
+        }
         if (_this->bookmarkDisplayMode == BOOKMARK_DISP_MODE_OFF) { return; }
 
         if (_this->bookmarkDisplayMode == BOOKMARK_DISP_MODE_TOP) {
@@ -711,9 +757,17 @@ private:
             }
         }
 
-        // Right-click on a bookmark label: open the radio log pre-filled with it
+        // Right-click on a bookmark label: open the radio log pre-filled with it.
+        // Shift+right-click renames the bookmark instead.
         if (inALabel && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
-            radiolog::openPopup(hoveredBookmarkName.c_str());
+            if (ImGui::GetIO().KeyShift) {
+                strcpy(_this->renameBookmarkBuf, hoveredBookmarkName.c_str());
+                _this->renameBookmarkOldName = hoveredBookmarkName;
+                _this->renameBookmarkOpen = true;
+            }
+            else {
+                radiolog::openPopup(hoveredBookmarkName.c_str());
+            }
             gui::waterfall.inputHandled = true;
             return;
         }
@@ -818,6 +872,10 @@ private:
     std::string editedBookmarkName = "";
     std::string firstEditedBookmarkName = "";
     FrequencyBookmark editedBookmark;
+
+    bool renameBookmarkOpen = false;
+    std::string renameBookmarkOldName = "";
+    char renameBookmarkBuf[1024] = {0};
 
     std::vector<std::string> listNames;
     std::string listNamesTxt = "";
