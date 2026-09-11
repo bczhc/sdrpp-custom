@@ -310,7 +310,7 @@ void MainWindow::draw() {
     ImGui::Begin("Main", NULL, WINDOW_FLAGS);
     ImVec4 textCol = ImGui::GetStyleColorVec4(ImGuiCol_Text);
 
-    // Keyboard controls mirroring the gamepad / FIFO commands.
+    // Keyboard controls.
     // a/d = shift right/left, w/s = zoom out/in, r/f = FFT floor down/up.
     // Holding Shift while pressing w/s falls back to fast per-frame zoom.
     // c = CW, Shift+C = center view on VFO, b = toggle USB/LSB.
@@ -779,15 +779,6 @@ void MainWindow::draw() {
         updateZoom(factor);
     }
 
-    {
-        auto saved_value = cmd_zoom_factor.load();
-        if (saved_value != 0.0) {
-            cmd_zoom_factor.store(0.0);
-            bw = saved_value;
-            bw = std::clamp(bw, 0.0f, 1.0f);
-            updateZoom((double) bw * (double) bw);
-        }
-    }
     {
         auto saved_value = cmd_zoom_factor_delta.load();
         if (saved_value != 0.0) {

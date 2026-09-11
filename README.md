@@ -10,8 +10,6 @@ Most features are built with Claude:deepseek-v4-pro.
   signal, enabled with a "Baseband NR" toggle.
 - **Chinese input (IME)** — on Wayland, type Chinese into text fields through
   the system IME, rendered with a merged CJK font.
-- **Gamepad control** — drive the waterfall with a gaming controller via
-  `controller.py`.
 - **Keyboard controls** — navigate the waterfall and control playback from the
   keyboard.
 - **Lock f_c** — keep the center frequency fixed while navigating the spectrum.
@@ -77,30 +75,6 @@ characters are rendered by merging Source Han Sans CN into the UI font.
 The CJK font is loaded from
 `/usr/share/fonts/adobe-source-han-sans/SourceHanSansCN-Regular.otf`; if it is
 missing, text still goes in but shows as `?`.
-
-## Controlling SDR++ with a gamepad
-
-`controller.py` reads a gaming controller and turns it into the commands that
-drive SDR++.
-
-1. `pip install evdev`
-2. Edit the two paths at the top of `controller.py` for your machine (the
-   controller device and where the FIFO should live).
-3. Start SDR++ from the directory where the FIFO should appear.
-4. Run `python controller.py`.
-
-Default mapping (Flydigi Direwolf 4; edit the script to remap):
-
-| Control | Action |
-|---|---|
-| D-Pad ← / → | Shift the spectrum view left / right |
-| D-Pad ↑ / ↓ | Adjust the FFT floor |
-| Left stick ← / → | Pan the spectrum view |
-| Left stick ↑ / ↓ | Zoom out / in |
-| Fn (left trigger) + left stick ← / → | Volume down / up |
-| Left bumper | Zoom to maximum |
-| Left stick click | Cycle zoom presets |
-| Select / Back | Toggle the menu |
 
 ## Keyboard controls
 
