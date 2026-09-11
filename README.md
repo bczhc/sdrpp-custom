@@ -81,8 +81,11 @@ missing, text still goes in but shows as `?`.
 | Key | Action |
 |---|---|
 | `a` / `d` | Shift the spectrum view right / left |
-| `w` / `s` | Zoom out / in (hold `Shift` for fast zoom) |
+| `w` / `s` | Zoom out / in around the view center (hold `Shift` for fast zoom) |
 | `r` / `f` | Lower / raise the FFT floor by 3 dB |
+| `c` | Switch the selected VFO to CW |
+| `b` | Toggle USB / LSB (falls back to USB) |
+| `Shift+C` | Recenter the view on the selected VFO |
 | `x` | Toggle between the current zoom and the minimum zoom |
 | `Space` | Play / pause |
 | `Esc` | Toggle the menu panel |
@@ -132,6 +135,10 @@ Press `l` to open a small dialog for logging the tuned frequency. The main box
 is pre-filled with the current frequency in kHz (zero-padded to 5 digits), and
 a "tailer" holds a UTC timestamp. `Ctrl+Enter` appends the line to
 `~/Documents/radio-log.txt` and closes; `Esc` cancels.
+
+Right-clicking a frequency manager bookmark opens the same dialog pre-filled
+with the frequency followed by the bookmark's name; `Shift`+right-click opens a
+rename dialog for that bookmark instead.
 
 ## SDR++ server on Android (Termux) / Raspberry Pi
 
