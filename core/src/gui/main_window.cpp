@@ -313,7 +313,7 @@ void MainWindow::draw() {
     // Keyboard controls mirroring the gamepad / FIFO commands.
     // a/d = shift right/left, w/s = zoom out/in, r/f = FFT floor down/up.
     // Holding Shift while pressing w/s falls back to fast per-frame zoom.
-    // c = CW, b = toggle USB/LSB.
+    // c = CW, Shift+C = center view on VFO, b = toggle USB/LSB.
     if (!ImGui::GetIO().WantTextInput) {
         if (ImGui::IsKeyPressed(ImGuiKey_A)) { cmd_spectrum_shift.store(1); }
         else if (ImGui::IsKeyPressed(ImGuiKey_D)) { cmd_spectrum_shift.store(-1); }
@@ -330,8 +330,16 @@ void MainWindow::draw() {
         if (ImGui::IsKeyPressed(ImGuiKey_Escape, false)) { cmd_panel_toggle.store(true); }
         if (ImGui::IsKeyPressed(ImGuiKey_Space, false)) { setPlayState(!playing); }
         if (ImGui::IsKeyPressed(ImGuiKey_C, false)) {
-            int mode = RADIO_IFACE_MODE_CW;
-            core::modComManager.callInterface(gui::waterfall.selectedVFO, RADIO_IFACE_CMD_SET_MODE, &mode, NULL);
+            if (ImGui::GetIO().KeyShift) {
+                // Shift+C: center the view on the selected VFO
+                if (!gui::waterfall.selectedVFO.empty()) {
+                    gui::waterfall.setViewOffset(gui::waterfall.vfos[gui::waterfall.selectedVFO]->centerOffset);
+                }
+            }
+            else {
+                int mode = RADIO_IFACE_MODE_CW;
+                core::modComManager.callInterface(gui::waterfall.selectedVFO, RADIO_IFACE_CMD_SET_MODE, &mode, NULL);
+            }
         }
         if (ImGui::IsKeyPressed(ImGuiKey_B, false)) {
             int mode = RADIO_IFACE_MODE_USB;
@@ -753,14 +761,14 @@ void MainWindow::draw() {
     ImGui::SetCursorPosX((ImGui::GetWindowSize().x / 2.0) - 10 * style::uiScale);
     ImVec2 wfSliderSize(20.0 * style::uiScale, 150.0 * style::uiScale);
 
-    auto updateZoom = [&vfo](double factor){
+    auto updateZoom = [&vfo](double factor, bool recenter = true){
         // Map 0.0 -> 1.0 to 1000.0 -> bandwidth
         double wfBw = gui::waterfall.getBandwidth();
         double delta = wfBw - 1000.0;
         double finalBw = std::min<double>(1000.0 + (factor * delta), wfBw);
 
         gui::waterfall.setViewBandwidth(finalBw);
-        if (vfo != NULL) {
+        if (recenter && vfo != NULL) {
             gui::waterfall.setViewOffset(vfo->centerOffset); // center vfo on screen
         }
     };
@@ -787,7 +795,7 @@ void MainWindow::draw() {
             bw += saved_value;
             bw = std::clamp(bw, 0.0f, 1.0f);
             double factor = (double) bw * (double) bw;
-            updateZoom(factor);
+            updateZoom(factor, false); // zoom around the current view center
         }
     }
 
