@@ -31,6 +31,7 @@
 #include <gui/widgets/snr_meter.h>
 #include <gui/tuner.h>
 #include <gui/commands.h>
+#include <radio_interface.h>
 
 void MainWindow::init() {
     LoadingScreen::show("Initializing UI");
@@ -312,6 +313,7 @@ void MainWindow::draw() {
     // Keyboard controls mirroring the gamepad / FIFO commands.
     // a/d = shift right/left, w/s = zoom out/in, r/f = FFT floor down/up.
     // Holding Shift while pressing w/s falls back to fast per-frame zoom.
+    // c = CW, b = toggle USB/LSB.
     if (!ImGui::GetIO().WantTextInput) {
         if (ImGui::IsKeyPressed(ImGuiKey_A)) { cmd_spectrum_shift.store(1); }
         else if (ImGui::IsKeyPressed(ImGuiKey_D)) { cmd_spectrum_shift.store(-1); }
@@ -327,6 +329,16 @@ void MainWindow::draw() {
         if (ImGui::IsKeyPressed(ImGuiKey_F, false)) { cmd_fft_min_change.store(3.0f); }
         if (ImGui::IsKeyPressed(ImGuiKey_Escape, false)) { cmd_panel_toggle.store(true); }
         if (ImGui::IsKeyPressed(ImGuiKey_Space, false)) { setPlayState(!playing); }
+        if (ImGui::IsKeyPressed(ImGuiKey_C, false)) {
+            int mode = RADIO_IFACE_MODE_CW;
+            core::modComManager.callInterface(gui::waterfall.selectedVFO, RADIO_IFACE_CMD_SET_MODE, &mode, NULL);
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_B, false)) {
+            int mode = RADIO_IFACE_MODE_USB;
+            core::modComManager.callInterface(gui::waterfall.selectedVFO, RADIO_IFACE_CMD_GET_MODE, NULL, &mode);
+            mode = (mode == RADIO_IFACE_MODE_USB) ? RADIO_IFACE_MODE_LSB : RADIO_IFACE_MODE_USB;
+            core::modComManager.callInterface(gui::waterfall.selectedVFO, RADIO_IFACE_CMD_SET_MODE, &mode, NULL);
+        }
     }
 
     ImGui::WaterfallVFO* vfo = NULL;
