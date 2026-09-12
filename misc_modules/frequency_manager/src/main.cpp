@@ -766,7 +766,7 @@ private:
                 _this->renameBookmarkOpen = true;
             }
             else {
-                radiolog::openPopup(hoveredBookmarkName.c_str());
+                radiolog::openPopup(hoveredBookmarkName.c_str(), hoveredBookmark.bookmark.frequency);
             }
             gui::waterfall.inputHandled = true;
             return;

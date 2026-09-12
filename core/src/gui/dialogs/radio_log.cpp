@@ -77,8 +77,9 @@ namespace radiolog {
         file << line << "\n";
     }
 
-    void openPopup(const char* name) {
-        formatFrequency(gui::freqSelect.frequency, freqBuf, sizeof(freqBuf));
+    void openPopup(const char* name, double freqHz) {
+        uint64_t freq = (freqHz >= 0.0) ? (uint64_t)freqHz : gui::freqSelect.frequency;
+        formatFrequency(freq, freqBuf, sizeof(freqBuf));
 
         // Pre-fill the main text with the frequency. Opening from the 'l' key
         // leaves a trailing space to keep typing; opening from a right-click on a
