@@ -227,6 +227,12 @@ private:
                 }
                 open = false;
             }
+            ImGui::SameLine();
+            if (ImGui::Button("Delete")) {
+                bookmarks.erase(renameBookmarkOldName);
+                saveByName(selectedListName);
+                open = false;
+            }
             if (cancel) {
                 open = false;
             }
@@ -703,6 +709,12 @@ private:
     bool mouseClickedInLabel = false;
     static void fftInput(ImGui::WaterFall::InputHandlerArgs args, void* ctx) {
         FrequencyManagerModule* _this = (FrequencyManagerModule*)ctx;
+        if (_this->renameBookmarkOpen) {
+            // While the rename dialog is open, swallow the waterfall input so
+            // clicks on the popup don't reach the VFO behind it.
+            gui::waterfall.inputHandled = true;
+            return;
+        }
         if (_this->bookmarkDisplayMode == BOOKMARK_DISP_MODE_OFF) { return; }
 
         if (_this->mouseClickedInLabel) {
