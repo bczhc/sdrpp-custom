@@ -585,17 +585,23 @@ void MainWindow::draw() {
 
             if (seekChanged) {
                 fileSeekTarget = posF;
+                fileSeekStationaryFrames = 0; // reset on movement
                 if (!fileSeekActive) {
                     // Drag started: pause once and keep it paused for the whole drag.
                     fileSeekActive = true;
                     fileSeekPaused = playing;
                     if (fileSeekPaused) { setPlayState(false); }
-                    lastFilePrefillTime = -1e9;
                 }
-                // Live-update the waterfall while dragging (throttled).
-                if (ImGui::GetTime() - lastFilePrefillTime >= 0.15) {
-                    prefillFileWaterfall((double)posF);
-                    lastFilePrefillTime = ImGui::GetTime();
+            }
+            else if (fileSeekActive) {
+                // Slider is held but stationary. Once it has been still for a few
+                // frames, the user is pointing at this spot: prefill the precise
+                // waterfall here.
+                if (fileSeekStationaryFrames < 5) {
+                    fileSeekStationaryFrames++;
+                    if (fileSeekStationaryFrames == 5) {
+                        prefillFileWaterfall((double)fileSeekTarget);
+                    }
                 }
             }
 

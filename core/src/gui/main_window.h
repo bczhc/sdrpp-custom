@@ -71,7 +71,7 @@ private:
     float fileSeekTarget = 0.0f;
     bool fileSeekActive = false;
     bool fileSeekPaused = false;
-    double lastFilePrefillTime = 0.0;
+    int fileSeekStationaryFrames = 0;
 
     EventHandler<VFOManager::VFO*> vfoCreatedHandler;
 };
