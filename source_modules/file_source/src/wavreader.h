@@ -21,6 +21,15 @@ public:
         if (memcmp(hdr.signature, "RIFF", 4) != 0) { return; }
         if (memcmp(hdr.fileType, "WAVE", 4) != 0) { return; }
         valid = true;
+
+        // The header's dataSize/fileSize are placeholder zeros for interrupted
+        // recordings, so derive the real data length from the file size instead.
+        file.seekg(0, std::ios::end);
+        std::streamoff fileSize = file.tellg();
+        file.seekg(sizeof(WavHeader_t), std::ios::beg);
+        dataSize = (fileSize > (std::streamoff)sizeof(WavHeader_t))
+                       ? (uint64_t)(fileSize - (std::streamoff)sizeof(WavHeader_t))
+                       : 0;
     }
 
     uint16_t getBitDepth() {
@@ -70,7 +79,7 @@ public:
         double frames = seconds * rate;
         if (frames < 0.0) { frames = 0.0; }
         uint64_t frame = (uint64_t)frames;
-        uint64_t maxFrame = (uint64_t)hdr.dataSize / frameBytes;
+        uint64_t maxFrame = dataSize / frameBytes;
         if (frame > maxFrame) { frame = maxFrame; }
 
         file.clear();
@@ -93,7 +102,7 @@ public:
         double rate = (double)hdr.sampleRate;
         double frameBytes = (double)hdr.bytesPerSample;
         if (rate <= 0.0 || frameBytes <= 0.0) { return 0.0; }
-        return (double)hdr.dataSize / (rate * frameBytes);
+        return (double)dataSize / (rate * frameBytes);
     }
 
     void close() {
@@ -121,4 +130,5 @@ private:
     std::ifstream file;
     std::mutex mtx;
     WavHeader_t hdr;
+    uint64_t dataSize = 0; // actual data bytes (derived from file size)
 };
