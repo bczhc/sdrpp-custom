@@ -9,6 +9,7 @@
 #include <gui/widgets/file_select.h>
 #include <filesystem>
 #include <regex>
+#include <cstdio>
 #include <gui/tuner.h>
 #include <algorithm>
 #include <stdexcept>
@@ -46,6 +47,7 @@ public:
         handler.seekHandler = seek;
         handler.getPositionHandler = getPosition;
         handler.getDurationHandler = getDuration;
+        handler.getStartTimeHandler = getStartTimeHandler;
         handler.readSamplesHandler = readSamples;
         handler.stream = &stream;
         sigpath::sourceManager.registerSource("File", &handler);
@@ -161,6 +163,7 @@ private:
                     core::setInputSampleRate(_this->sampleRate);
                     std::string filename = std::filesystem::path(_this->fileSelect.path).filename().string();
                     _this->centerFreq = _this->getFrequency(filename);
+                    _this->parseStartTime(filename, _this->startTimeBuf, sizeof(_this->startTimeBuf));
                     tuner::tune(tuner::TUNER_MODE_IQ_ONLY, "", _this->centerFreq);
                     //gui::freqSelect.minFreq = _this->centerFreq - (_this->sampleRate/2);
                     //gui::freqSelect.maxFreq = _this->centerFreq + (_this->sampleRate/2);
@@ -176,6 +179,18 @@ private:
         }
 
         ImGui::Checkbox("Float32 Mode##_file_source", &_this->float32Mode);
+
+        bool startTimeValid = _this->isValidStartTime(_this->startTimeBuf);
+        if (_this->startTimeBuf[0] != '\0' && !startTimeValid) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.2f, 0.2f, 1.0f));
+        }
+        ImGui::SetNextItemWidth(200);
+        ImGui::InputText("Start time##file_source_start_time", _this->startTimeBuf, sizeof(_this->startTimeBuf));
+        if (_this->startTimeBuf[0] != '\0' && !startTimeValid) {
+            ImGui::PopStyleColor();
+        }
+        ImGui::SameLine();
+        ImGui::TextUnformatted("UTC");
     }
 
     static void worker(void* ctx) {
@@ -216,6 +231,82 @@ private:
         return std::atof(freqStr.substr(0, freqStr.size() - 2).c_str());
     }
 
+    // Number of days in a month (leap-year aware).
+    static int daysInMonth(int year, int month) {
+        static const int days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+        if (month == 2) {
+            bool leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+            return leap ? 29 : 28;
+        }
+        return days[month - 1];
+    }
+
+    // Returns true if `str` is a valid "YYYY-MM-DD HH:MM:SS" timestamp.
+    static bool isValidStartTime(const char* str) {
+        int y, mo, d, h, mi, s;
+        if (sscanf(str, "%d-%d-%d %d:%d:%d", &y, &mo, &d, &h, &mi, &s) != 6) { return false; }
+        if (mo < 1 || mo > 12 || d < 1 || d > 31) { return false; }
+        if (h < 0 || h > 23 || mi < 0 || mi > 59 || s < 0 || s > 59) { return false; }
+        return true;
+    }
+
+    // Extracts the recording's start time from a filename and writes it into
+    // `out` as "YYYY-MM-DD HH:MM:SS". Two filename layouts are supported:
+    //   baseband_<freq>Hz_<HH-MM-SS>_<DD-MM-YYYY>.wav
+    //   baseband_<YYYY-MM-DD>_<HH-MM-SS>_<freq>Hz.wav
+    // The filename timestamp is local time (UTC+8), so 8 hours are subtracted
+    // to get UTC. Leaves `out` empty on no match.
+    void parseStartTime(std::string filename, char* out, size_t outSize) {
+        int hour = 0, minute = 0, second = 0, day = 0, month = 0, year = 0;
+        bool matched = false;
+
+        std::regex expr1("(\\d{2})-(\\d{2})-(\\d{2})_(\\d{2})-(\\d{2})-(\\d{4})");
+        std::smatch m1;
+        if (std::regex_search(filename, m1, expr1)) {
+            hour = std::stoi(m1[1].str());
+            minute = std::stoi(m1[2].str());
+            second = std::stoi(m1[3].str());
+            day = std::stoi(m1[4].str());
+            month = std::stoi(m1[5].str());
+            year = std::stoi(m1[6].str());
+            matched = true;
+        }
+        else {
+            std::regex expr2("(\\d{4})-(\\d{2})-(\\d{2})_(\\d{2})-(\\d{2})-(\\d{2})");
+            std::smatch m2;
+            if (std::regex_search(filename, m2, expr2)) {
+                year = std::stoi(m2[1].str());
+                month = std::stoi(m2[2].str());
+                day = std::stoi(m2[3].str());
+                hour = std::stoi(m2[4].str());
+                minute = std::stoi(m2[5].str());
+                second = std::stoi(m2[6].str());
+                matched = true;
+            }
+        }
+
+        if (!matched) { out[0] = '\0'; return; }
+
+        hour -= 8; // UTC+8 -> UTC
+        if (hour < 0) {
+            hour += 24;
+            day -= 1;
+            if (day < 1) {
+                month -= 1;
+                if (month < 1) { month = 12; year -= 1; }
+                day = daysInMonth(year, month);
+            }
+        }
+
+        snprintf(out, outSize, "%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second);
+    }
+
+    // SourceHandler callback: returns the (editable) start time string.
+    static const char* getStartTimeHandler(void* ctx) {
+        FileSourceModule* _this = (FileSourceModule*)ctx;
+        return _this->startTimeBuf;
+    }
+
     // Read `count` IQ samples starting at `seconds` into `out`. Returns the
     // number of samples written (always `count` unless something went wrong).
     int readSamplesAt(double seconds, dsp::complex_t* out, int count) {
@@ -244,6 +335,8 @@ private:
     std::thread workerThread;
 
     double centerFreq = 100000000;
+
+    char startTimeBuf[64] = {0};
 
     bool float32Mode = false;
 };

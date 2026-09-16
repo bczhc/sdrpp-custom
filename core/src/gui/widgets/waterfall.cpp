@@ -8,6 +8,7 @@
 #include <gui/gui.h>
 #include <gui/style.h>
 #include <gui/commands.h>
+#include <signal_path/signal_path.h>
 
 float DEFAULT_COLOR_MAP[][3] = {
     { 0x00, 0x00, 0x20 },
@@ -548,6 +549,27 @@ namespace ImGui {
                 snprintf(buf, sizeof(buf), "%.6f MHz", freq / 1000000.0);
                 ImGui::BeginTooltip();
                 ImGui::TextUnformatted(buf);
+
+                // In the waterfall, show the time at the hovered point: start time
+                // + current position - how far down the waterfall the cursor is.
+                if (mouseInWaterfall) {
+                    const char* startTime = sigpath::sourceManager.getStartTime();
+                    if (startTime != NULL && startTime[0] != '\0') {
+                        int y, mo, d, h, mi, s;
+                        if (sscanf(startTime, "%d-%d-%d %d:%d:%d", &y, &mo, &d, &h, &mi, &s) == 6 &&
+                            mo >= 1 && mo <= 12 && d >= 1 && d <= 31 &&
+                            h >= 0 && h <= 23 && mi >= 0 && mi <= 59 && s >= 0 && s <= 59) {
+                            double fftRate = sigpath::iqFrontEnd.getFFTRate();
+                            double secondsPerLine = (fftRate > 0.0) ? (1.0 / fftRate) : 0.0;
+                            double pos = sigpath::sourceManager.getPosition() - ((mousePos.y - wfMin.y) * secondsPerLine);
+                            long long secOfDay = std::llround(h * 3600 + mi * 60 + s + pos) % 86400;
+                            if (secOfDay < 0) { secOfDay += 86400; }
+                            snprintf(buf, sizeof(buf), "%02lld:%02lld:%02lldZ", secOfDay / 3600, (secOfDay % 3600) / 60, secOfDay % 60);
+                            ImGui::TextUnformatted(buf);
+                        }
+                    }
+                }
+
                 ImGui::EndTooltip();
             }
         }

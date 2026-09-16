@@ -22,6 +22,7 @@ public:
             seekHandler = NULL;
             getPositionHandler = NULL;
             getDurationHandler = NULL;
+            getStartTimeHandler = NULL;
             readSamplesHandler = NULL;
             ctx = NULL;
         }
@@ -36,6 +37,7 @@ public:
         void (*seekHandler)(double seconds, void* ctx);
         double (*getPositionHandler)(void* ctx);
         double (*getDurationHandler)(void* ctx);
+        const char* (*getStartTimeHandler)(void* ctx);
         int (*readSamplesHandler)(double seconds, dsp::complex_t* out, int count, void* ctx);
         void* ctx;
     };
@@ -55,6 +57,7 @@ public:
     void seek(double seconds);
     double getPosition();
     double getDuration();
+    const char* getStartTime();
     int readSamples(double seconds, dsp::complex_t* out, int count);
     void setTuningOffset(double offset);
     void setTuningMode(TuningMode mode);

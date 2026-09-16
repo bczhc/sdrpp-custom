@@ -111,6 +111,13 @@ double SourceManager::getDuration() {
     return selectedHandler->getDurationHandler(selectedHandler->ctx);
 }
 
+const char* SourceManager::getStartTime() {
+    if (selectedHandler == NULL || selectedHandler->getStartTimeHandler == NULL) {
+        return NULL;
+    }
+    return selectedHandler->getStartTimeHandler(selectedHandler->ctx);
+}
+
 int SourceManager::readSamples(double seconds, dsp::complex_t* out, int count) {
     if (selectedHandler == NULL || selectedHandler->readSamplesHandler == NULL) {
         return 0;
