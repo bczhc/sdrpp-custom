@@ -264,6 +264,7 @@ double IQFrontEnd::getEffectiveSamplerate() {
 }
 
 void IQFrontEnd::computeFFT(const dsp::complex_t* data, float* out) {
+    std::lock_guard<std::mutex> lck(fftMtx);
     // Apply window
     volk_32fc_32f_multiply_32fc((lv_32fc_t*)fftInBuf, (lv_32fc_t*)data, fftWindowBuf, _nzFFTSize);
 

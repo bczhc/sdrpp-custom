@@ -288,7 +288,7 @@ void MainWindow::prefillFileWaterfall(double seekTime) {
         // Fill lines oldest -> newest so setHistory() can put the newest on top.
         for (int k = 0; k < count; k++) {
             int lineIndex = newestLine - (count - 1 - k);
-            double lineSeconds = (double)(lineIndex * fftInterval) / sr;
+            double lineSeconds = ((double)lineIndex * (double)fftInterval) / sr;
             int got = sigpath::sourceManager.readSamples(lineSeconds, samples, nz);
             if (got < nz) {
                 memset(samples + got, 0, (nz - got) * sizeof(dsp::complex_t));

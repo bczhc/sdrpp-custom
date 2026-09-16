@@ -5,6 +5,7 @@
 #include <string.h>
 #include <fstream>
 #include <mutex>
+#include <cmath>
 
 #define WAV_SIGNATURE       "RIFF"
 #define WAV_TYPE            "WAVE"
@@ -78,7 +79,7 @@ public:
         // that isn't a multiple of frameBytes would swap the I/Q channels.
         double frames = seconds * rate;
         if (frames < 0.0) { frames = 0.0; }
-        uint64_t frame = (uint64_t)frames;
+        uint64_t frame = (uint64_t)std::llround(frames);
         uint64_t maxFrame = dataSize / frameBytes;
         if (frame > maxFrame) { frame = maxFrame; }
 

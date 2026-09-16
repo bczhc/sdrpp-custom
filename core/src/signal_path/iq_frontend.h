@@ -9,6 +9,7 @@
 #include "../dsp/sink/handler_sink.h"
 #include "../dsp/math/conjugate.h"
 #include <fftw3.h>
+#include <mutex>
 
 class IQFrontEnd {
 public:
@@ -111,6 +112,8 @@ protected:
     fftwf_complex *fftInBuf, *fftOutBuf;
     fftwf_plan fftwPlan;
     float* fftDbOut;
+
+    std::mutex fftMtx; // serializes computeFFT (shared by live FFT and seek prefill)
 
     double effectiveSr;
 
