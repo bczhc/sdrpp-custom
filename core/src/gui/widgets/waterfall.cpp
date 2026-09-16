@@ -505,15 +505,19 @@ namespace ImGui {
             }
         }
         else if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+            bool shiftHeld = ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift);
+
             // Check if a VFO is hovered. If yes, show tooltip
+            bool vfoHovered = false;
             for (auto const& [name, _vfo] : vfos) {
                 if (ImGui::IsMouseHoveringRect(_vfo->rectMin, _vfo->rectMax) || ImGui::IsMouseHoveringRect(_vfo->wfRectMin, _vfo->wfRectMax)) {
+                    vfoHovered = true;
                     char buf[128];
                     ImGui::BeginTooltip();
 
                     ImGui::TextUnformatted(name.c_str());
 
-                    if (ImGui::GetIO().KeyCtrl) {
+                    if (shiftHeld) {
                         ImGui::Separator();
                         printAndScale(_vfo->generalOffset + centerFreq, buf);
                         ImGui::Text("Frequency: %sHz", buf);
@@ -535,6 +539,16 @@ namespace ImGui {
                     ImGui::EndTooltip();
                     break;
                 }
+            }
+
+            // Otherwise, if hovering the FFT/waterfall, show the frequency under the cursor.
+            if (!vfoHovered && shiftHeld && (mouseInFFT || mouseInWaterfall)) {
+                double freq = lowerFreq + (mousePos.x - fftAreaMin.x) * (viewBandwidth / (double)dataWidth);
+                char buf[64];
+                snprintf(buf, sizeof(buf), "%.6f MHz", freq / 1000000.0);
+                ImGui::BeginTooltip();
+                ImGui::TextUnformatted(buf);
+                ImGui::EndTooltip();
             }
         }
 
