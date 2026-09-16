@@ -9,6 +9,7 @@
 #include <gui/style.h>
 #include <gui/commands.h>
 #include <signal_path/signal_path.h>
+#include <ctime>
 
 float DEFAULT_COLOR_MAP[][3] = {
     { 0x00, 0x00, 0x20 },
@@ -115,6 +116,35 @@ static void civilFromDays(long long z, int& y, int& m, int& d) {
     y = (int)(y_ + (m_ <= 2));
     m = (int)m_;
     d = (int)d_;
+}
+
+// Time to show in the top-left corner of the waterfall, as
+// "YYYY-MM-DD HH:MM:SSZ" (UTC). For a seekable file source with a valid Start
+// Time this is the recording time (Start Time + position); for other sources it
+// is the wall clock. Returns false when there is nothing to show.
+static bool getWaterfallTime(char* out, size_t outSize) {
+    long long epoch;
+    const char* startTime = sigpath::sourceManager.getStartTime();
+    if (startTime != NULL) {
+        int y, mo, d, h, mi, s;
+        if (sscanf(startTime, "%d-%d-%d %d:%d:%d", &y, &mo, &d, &h, &mi, &s) != 6 ||
+            mo < 1 || mo > 12 || d < 1 || d > 31 ||
+            h < 0 || h > 23 || mi < 0 || mi > 59 || s < 0 || s > 59) {
+            return false;
+        }
+        epoch = daysFromCivil(y, mo, d) * 86400LL + h * 3600 + mi * 60 + s
+                + (long long)std::llround(sigpath::sourceManager.getPosition());
+    }
+    else {
+        epoch = (long long)std::time(nullptr);
+    }
+
+    int uy, umo, ud;
+    civilFromDays(epoch / 86400, uy, umo, ud);
+    long long sec = epoch % 86400;
+    snprintf(out, outSize, "%04d-%02d-%02d %02lld:%02lld:%02lldZ",
+             uy, umo, ud, sec / 3600, (sec % 3600) / 60, sec % 60);
+    return true;
 }
 
 namespace ImGui {
@@ -971,6 +1001,15 @@ namespace ImGui {
         drawVFOs();
         if (bandplan != NULL && bandplanVisible) {
             drawBandPlan();
+        }
+
+        // Top-left corner time (UTC).
+        {
+            char timeStr[64];
+            if (getWaterfallTime(timeStr, sizeof(timeStr))) {
+                ImU32 textCol = ImGui::GetColorU32(ImGuiCol_Text);
+                window->DrawList->AddText(ImVec2(wfMin.x + (4.0f * style::uiScale), wfMin.y + (4.0f * style::uiScale)), textCol, timeStr);
+            }
         }
 
         if (!waterfallVisible) {
