@@ -10,13 +10,15 @@ Most features are built with Claude:deepseek-v4-pro.
   signal, enabled with a "Baseband NR" toggle.
 - **Chinese input (IME)** — on Wayland, type Chinese into text fields through
   the system IME, rendered with a merged CJK font.
-- **Keyboard controls** — navigate the waterfall and control playback from the
-  keyboard.
-- **Lock f_c** — keep the center frequency fixed while navigating the spectrum.
-- **Lock view** — pin the view in place and move the center frequency instead.
-- **File source seeking** — seek through a loaded file with a slider and time
-  readout.
-- **Radio log** — press `l` to log the tuned frequency to a text file.
+- **Keyboard controls** — navigate the waterfall, switch modes, and control
+  playback from the keyboard.
+- **Lock f_c** / **Lock view** — switches that change how scrolling and dragging
+  move the center frequency.
+- **File source player** — seek bar with live waterfall prefill, plus recording
+  time (UTC clock overlay and Shift-hover readout).
+- **Radio log** — log the tuned frequency or a bookmark to a text file.
+- **Frequency bookmarks** — rename, delete, and log bookmarks from the
+  waterfall.
 - **Extra UI scales** — added 133% and 150% to the UI scale menu.
 
 ## Building
@@ -103,7 +105,6 @@ Built-in keybindings (from upstream SDR++):
 | Over the waterfall / FFT | `Shift` + scroll | Coarse tuning (×10) |
 | Over the waterfall / FFT | `Alt` + scroll | Fine tuning (×0.1) |
 | Over the waterfall / FFT | `PageUp` / `PageDown` | Cycle through VFOs |
-| Over the frequency scale | `←` / `→` | Pan the spectrum view |
 | Frequency box (hover a digit) | `↑` / `↓` | Increment / decrement the digit |
 | Frequency box (hover a digit) | `←` / `Backspace` / `→` | Move the cursor |
 | Frequency box (hover a digit) | `0`–`9` | Type digits |
@@ -122,23 +123,33 @@ Both switches sit in the waterfall controls, next to the zoom slider.
   directly instead of panning the view. The VFO stays fixed on screen while the
   spectrum scrolls behind it.
 
-## File source seeking
+## File source player
 
 A loaded file source gets a seek bar with a current/total time readout at the
-top of the window. Drag to seek — the waterfall is rebuilt so the new position
-lands at the top — and pausing no longer rewinds, so resume continues from the
-same spot.
+top of the window. Drag it to seek — the waterfall is rebuilt so the new
+position lands at the top — and pausing no longer rewinds, so resume continues
+from the same spot. The wheel (±1 s, `Shift` ±5 s) and arrow keys fine-tune the
+position.
+
+The recording start time is parsed from the filename and shown in the file
+source menu. With a valid start time, the waterfall shows a UTC clock overlay in
+the top-left corner, and holding `Shift` over the waterfall/FFT shows the
+frequency and absolute time (UTC and Beijing) under the cursor.
 
 ## Radio log
 
 Press `l` to open a small dialog for logging the tuned frequency. The main box
 is pre-filled with the current frequency in kHz (zero-padded to 5 digits), and
-a "tailer" holds a UTC timestamp. `Ctrl+Enter` appends the line to
+a "tailer" holds a timestamp — the recording time for a file source, the wall
+clock otherwise. `Ctrl+Enter` appends the line to
 `~/Documents/radio-log.txt` and closes; `Esc` cancels.
 
-Right-clicking a frequency manager bookmark opens the same dialog pre-filled
-with the frequency followed by the bookmark's name; `Shift`+right-click opens a
-rename dialog for that bookmark instead.
+## Frequency bookmarks
+
+Bookmarks from the frequency manager are drawn as yellow labels above the
+waterfall. Left-click one to tune to it; right-click opens the radio log
+pre-filled with that bookmark's frequency and name; `Shift`+right-click opens a
+rename dialog (with a Delete button).
 
 ## SDR++ server on Android (Termux) / Raspberry Pi
 
