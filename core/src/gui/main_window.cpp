@@ -629,9 +629,12 @@ void MainWindow::draw() {
                 if (ImGui::IsItemHovered()) {
                     delta += -(double)ImGui::GetIO().MouseWheel * step;
                 }
-                // Arrow keys globally (repeat while held).
-                if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) { delta -= step; }
-                if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) { delta += step; }
+                // Arrow keys globally (repeat while held), but not while a modal
+                // dialog (radio log, credits, etc.) is open.
+                if (!lockWaterfallControls) {
+                    if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) { delta -= step; }
+                    if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) { delta += step; }
+                }
 
                 if (delta != 0.0) {
                     double newPos = std::clamp(filePos + delta, 0.0, fileDur);

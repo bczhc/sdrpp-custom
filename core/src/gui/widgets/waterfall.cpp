@@ -521,34 +521,6 @@ namespace ImGui {
             return;
         }
 
-        // If the left and right keys are pressed while hovering the freq scale, move it too
-        bool leftKeyPressed = ImGui::IsKeyPressed(ImGuiKey_LeftArrow);
-        if ((leftKeyPressed || ImGui::IsKeyPressed(ImGuiKey_RightArrow)) && mouseInFreq) {
-            viewOffset += leftKeyPressed ? (viewBandwidth / 20.0) : (-viewBandwidth / 20.0);
-
-            if (viewOffset + (viewBandwidth / 2.0) > wholeBandwidth / 2.0) {
-                double freqOffset = (viewOffset + (viewBandwidth / 2.0)) - (wholeBandwidth / 2.0);
-                viewOffset = (wholeBandwidth / 2.0) - (viewBandwidth / 2.0);
-                centerFreq += freqOffset;
-                centerFreqMoved = true;
-            }
-            if (viewOffset - (viewBandwidth / 2.0) < -(wholeBandwidth / 2.0)) {
-                double freqOffset = (viewOffset - (viewBandwidth / 2.0)) + (wholeBandwidth / 2.0);
-                viewOffset = (viewBandwidth / 2.0) - (wholeBandwidth / 2.0);
-                centerFreq += freqOffset;
-                centerFreqMoved = true;
-            }
-
-            lowerFreq = (centerFreq + viewOffset) - (viewBandwidth / 2.0);
-            upperFreq = (centerFreq + viewOffset) + (viewBandwidth / 2.0);
-
-            if (viewBandwidth != wholeBandwidth) {
-                updateAllVFOs();
-                if (_fullUpdate) { updateWaterfallFb(); };
-            }
-            return;
-        }
-
         // Finally, if nothing else was selected, just move the VFO
         if ((VFOMoveSingleClick ? ImGui::IsMouseClicked(ImGuiMouseButton_Left) : ImGui::IsMouseDown(ImGuiMouseButton_Left)) && (mouseInFFT | mouseInWaterfall) && (mouseMoved || hoveredVFOName == "")) {
             if (selVfo != NULL) {
