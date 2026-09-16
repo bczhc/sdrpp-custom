@@ -91,6 +91,32 @@ inline void doZoom(int offset, int width, int inSize, int outSize, float* in, fl
     }
 }
 
+// Days since 1970-01-01 for a civil date (Howard Hinnant's algorithm).
+static long long daysFromCivil(int y, int m, int d) {
+    y -= m <= 2;
+    int era = (y >= 0 ? y : y - 399) / 400;
+    unsigned yoe = (unsigned)(y - era * 400);
+    unsigned doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
+    unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    return era * 146097 + (long long)doe - 719468;
+}
+
+// Inverse of daysFromCivil: civil date from days since 1970-01-01.
+static void civilFromDays(long long z, int& y, int& m, int& d) {
+    z += 719468;
+    long long era = (z >= 0 ? z : z - 146096) / 146097;
+    unsigned doe = (unsigned)(z - era * 146097);
+    unsigned yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    long long y_ = (long long)yoe + era * 400;
+    unsigned doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    unsigned mp = (5 * doy + 2) / 153;
+    unsigned d_ = doy - (153 * mp + 2) / 5 + 1;
+    unsigned m_ = mp + (mp < 10 ? 3 : -9);
+    y = (int)(y_ + (m_ <= 2));
+    m = (int)m_;
+    d = (int)d_;
+}
+
 namespace ImGui {
     bool centerFreqLocked = false;
     bool viewLocked = false;
@@ -562,9 +588,25 @@ namespace ImGui {
                             double fftRate = sigpath::iqFrontEnd.getFFTRate();
                             double secondsPerLine = (fftRate > 0.0) ? (1.0 / fftRate) : 0.0;
                             double pos = sigpath::sourceManager.getPosition() - ((mousePos.y - wfMin.y) * secondsPerLine);
-                            long long secOfDay = std::llround(h * 3600 + mi * 60 + s + pos) % 86400;
-                            if (secOfDay < 0) { secOfDay += 86400; }
-                            snprintf(buf, sizeof(buf), "%02lld:%02lld:%02lldZ", secOfDay / 3600, (secOfDay % 3600) / 60, secOfDay % 60);
+
+                            long long startEpoch = daysFromCivil(y, mo, d) * 86400 + h * 3600 + mi * 60 + s;
+                            long long pointEpoch = startEpoch + (long long)std::llround(pos);
+
+                            // UTC
+                            int uy, umo, ud;
+                            civilFromDays(pointEpoch / 86400, uy, umo, ud);
+                            long long utcSec = pointEpoch % 86400;
+                            snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02lld:%02lld:%02lldZ",
+                                     uy, umo, ud, utcSec / 3600, (utcSec % 3600) / 60, utcSec % 60);
+                            ImGui::TextUnformatted(buf);
+
+                            // UTC+8 (Beijing time)
+                            long long bjtEpoch = pointEpoch + 8 * 3600;
+                            int by, bmo, bd;
+                            civilFromDays(bjtEpoch / 86400, by, bmo, bd);
+                            long long bjtSec = bjtEpoch % 86400;
+                            snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02lld:%02lld:%02lld +0800",
+                                     by, bmo, bd, bjtSec / 3600, (bjtSec % 3600) / 60, bjtSec % 60);
                             ImGui::TextUnformatted(buf);
                         }
                     }
