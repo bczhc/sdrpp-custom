@@ -12,6 +12,8 @@
 #include <ctime>
 #include <fstream>
 #include <filesystem>
+#include <cmath>
+#include <signal_path/signal_path.h>
 
 namespace radiolog {
     const char* LOG_FILE = "/home/bczhc/Documents/radio-log.txt";
@@ -41,18 +43,41 @@ namespace radiolog {
         }
     }
 
-    // Formats the current UTC time as "dMonyy HHMM", e.g. "7Sep26 0522".
-    void formatUtcTime(char* out, size_t outSize) {
-        static const char* months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    // Days since 1970-01-01 for a civil date (Howard Hinnant's algorithm).
+    static long long daysFromCivil(int y, int m, int d) {
+        y -= m <= 2;
+        int era = (y >= 0 ? y : y - 399) / 400;
+        unsigned yoe = (unsigned)(y - era * 400);
+        unsigned doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
+        unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+        return era * 146097 + (long long)doe - 719468;
+    }
 
-        std::time_t now = std::time(nullptr);
+    static const char* MONTHS[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
+    // Formats an epoch (UTC seconds) as "dMonyy HHMM", e.g. "7Sep26 0522".
+    void formatEpochTime(std::time_t epoch, char* out, size_t outSize) {
         std::tm tmv = {};
-        gmtime_r(&now, &tmv);
-
+        gmtime_r(&epoch, &tmv);
         snprintf(out, outSize, "%d%s%02d %02d%02d",
-                 tmv.tm_mday, months[tmv.tm_mon], tmv.tm_year % 100,
+                 tmv.tm_mday, MONTHS[tmv.tm_mon], tmv.tm_year % 100,
                  tmv.tm_hour, tmv.tm_min);
+    }
+
+    // Formats the current UTC time as "dMonyy HHMM".
+    void formatUtcTime(char* out, size_t outSize) {
+        formatEpochTime(std::time(nullptr), out, outSize);
+    }
+
+    // Parses "YYYY-MM-DD HH:MM:SS" into UTC epoch seconds. Returns false on invalid input.
+    bool parseStartTimeEpoch(const char* str, long long& epoch) {
+        int y, mo, d, h, mi, s;
+        if (sscanf(str, "%d-%d-%d %d:%d:%d", &y, &mo, &d, &h, &mi, &s) != 6) { return false; }
+        if (mo < 1 || mo > 12 || d < 1 || d > 31) { return false; }
+        if (h < 0 || h > 23 || mi < 0 || mi > 59 || s < 0 || s > 59) { return false; }
+        epoch = daysFromCivil(y, mo, d) * 86400LL + h * 3600 + mi * 60 + s;
+        return true;
     }
 
     std::string trim(const std::string& s) {
@@ -91,9 +116,26 @@ namespace radiolog {
             snprintf(textBuf, sizeof(textBuf), "%s ", freqBuf);
         }
 
-        char tsBuf[32] = {0};
-        formatUtcTime(tsBuf, sizeof(tsBuf));
-        snprintf(tailerBuf, sizeof(tailerBuf), "(%s) (zc)", tsBuf);
+        // The tailer timestamp: for the file source use the recording time
+        // (Start Time + elapsed), otherwise the current wall-clock time.
+        const char* startTime = sigpath::sourceManager.getStartTime();
+        if (startTime != NULL) {
+            long long startEpoch;
+            if (parseStartTimeEpoch(startTime, startEpoch)) {
+                long long pointEpoch = startEpoch + (long long)std::llround(sigpath::sourceManager.getPosition());
+                char tsBuf[32] = {0};
+                formatEpochTime((std::time_t)pointEpoch, tsBuf, sizeof(tsBuf));
+                snprintf(tailerBuf, sizeof(tailerBuf), "(%s) (zc)", tsBuf);
+            }
+            else {
+                tailerBuf[0] = '\0'; // invalid Start Time -> empty tailer
+            }
+        }
+        else {
+            char tsBuf[32] = {0};
+            formatUtcTime(tsBuf, sizeof(tsBuf));
+            snprintf(tailerBuf, sizeof(tailerBuf), "(%s) (zc)", tsBuf);
+        }
 
         open = true;
         justOpened = true;
