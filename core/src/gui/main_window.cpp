@@ -616,6 +616,39 @@ void MainWindow::draw() {
                     setPlayState(true);
                 }
             }
+
+            // Wheel (hover the seek bar) / arrow keys (global) fine-tune.
+            // Seek immediately for responsiveness; prefill only once the input
+            // settles, so rapid input doesn't backlog on the slow prefill.
+            if (!fileSeekActive) {
+                bool shiftHeld = ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift);
+                double step = shiftHeld ? 5.0 : 1.0;
+                double delta = 0.0;
+
+                // Wheel only while hovering the seek bar.
+                if (ImGui::IsItemHovered()) {
+                    delta += -(double)ImGui::GetIO().MouseWheel * step;
+                }
+                // Arrow keys globally (repeat while held).
+                if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) { delta -= step; }
+                if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) { delta += step; }
+
+                if (delta != 0.0) {
+                    double newPos = std::clamp(filePos + delta, 0.0, fileDur);
+                    fileSeekTarget = (float)newPos;
+                    sigpath::sourceManager.seek(newPos);
+                    fileSeekNudgeIdleFrames = 0;
+                }
+                else if (fileSeekNudgeIdleFrames < 5) {
+                    fileSeekNudgeIdleFrames++;
+                    if (fileSeekNudgeIdleFrames == 5) {
+                        bool wasPlaying = playing;
+                        if (wasPlaying) { setPlayState(false); }
+                        prefillFileWaterfall((double)fileSeekTarget);
+                        if (wasPlaying) { setPlayState(true); }
+                    }
+                }
+            }
         }
     }
 
@@ -700,8 +733,9 @@ void MainWindow::draw() {
     ImGui::EndChild();
 
     if (!lockWaterfallControls) {
-        // Handle arrow keys
-        if (vfo != NULL && (gui::waterfall.mouseInFFT || gui::waterfall.mouseInWaterfall)) {
+        // Handle arrow keys (disabled for the file source, where the arrows
+        // nudge the seek position instead).
+        if (vfo != NULL && (gui::waterfall.mouseInFFT || gui::waterfall.mouseInWaterfall) && sigpath::sourceManager.getDuration() <= 0.0) {
             bool freqChanged = false;
             if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow) && !gui::freqSelect.digitHovered) {
                 double nfreq = gui::waterfall.getCenterFrequency() + vfo->generalOffset - vfo->snapInterval;

@@ -72,6 +72,7 @@ private:
     bool fileSeekActive = false;
     bool fileSeekPaused = false;
     int fileSeekStationaryFrames = 0;
+    int fileSeekNudgeIdleFrames = 0;
 
     EventHandler<VFOManager::VFO*> vfoCreatedHandler;
 };
