@@ -13,6 +13,8 @@
 #include <fstream>
 #include <filesystem>
 #include <cmath>
+#include <cctype>
+#include <vector>
 #include <signal_path/signal_path.h>
 
 namespace radiolog {
@@ -21,7 +23,13 @@ namespace radiolog {
     bool open = false;
     bool justOpened = false;
 
-    bool isOpen() { return open; }
+    bool historyOpen = false;
+    bool historyJustOpened = false;
+    char historySearchBuf[256] = {0};
+    std::vector<std::string> historyLines;
+    int historySelected = 0;
+
+    bool isOpen() { return open || historyOpen; }
 
     char freqBuf[64] = {0};
     char textBuf[2048] = {0};
@@ -102,22 +110,29 @@ namespace radiolog {
         file << line << "\n";
     }
 
-    void openPopup(const char* name, double freqHz) {
-        uint64_t freq = (freqHz >= 0.0) ? (uint64_t)freqHz : gui::freqSelect.frequency;
-        formatFrequency(freq, freqBuf, sizeof(freqBuf));
+    bool containsIgnoreCase(const std::string& hay, const std::string& needle) {
+        if (needle.empty()) { return true; }
+        auto it = std::search(hay.begin(), hay.end(), needle.begin(), needle.end(),
+                              [](char a, char b) { return std::tolower((unsigned char)a) == std::tolower((unsigned char)b); });
+        return it != hay.end();
+    }
 
-        // Pre-fill the main text with the frequency. Opening from the 'l' key
-        // leaves a trailing space to keep typing; opening from a right-click on a
-        // frequency marker appends the marker's name instead.
-        if (name && name[0]) {
-            snprintf(textBuf, sizeof(textBuf), "%s %s", freqBuf, name);
+    // Strips the trailing " (<ts>) (zc)" from a log line, returning the main body.
+    std::string extractMainBody(const std::string& line) {
+        std::string s = line;
+        if (s.size() >= 5 && s.compare(s.size() - 5, 5, " (zc)") == 0) {
+            s.erase(s.size() - 5);
         }
-        else {
-            snprintf(textBuf, sizeof(textBuf), "%s ", freqBuf);
+        size_t lp = s.rfind('(');
+        if (lp != std::string::npos) {
+            s.erase(lp);
         }
+        return trim(s);
+    }
 
-        // The tailer timestamp: for the file source use the recording time
-        // (Start Time + elapsed), otherwise the current wall-clock time.
+    // Regenerate the tailer timestamp (recording time for a file source, the
+    // wall clock otherwise).
+    void updateTailer() {
         const char* startTime = sigpath::sourceManager.getStartTime();
         if (startTime != NULL) {
             long long startEpoch;
@@ -136,6 +151,23 @@ namespace radiolog {
             formatUtcTime(tsBuf, sizeof(tsBuf));
             snprintf(tailerBuf, sizeof(tailerBuf), "(%s) (zc)", tsBuf);
         }
+    }
+
+    void openPopup(const char* name, double freqHz) {
+        uint64_t freq = (freqHz >= 0.0) ? (uint64_t)freqHz : gui::freqSelect.frequency;
+        formatFrequency(freq, freqBuf, sizeof(freqBuf));
+
+        // Pre-fill the main text with the frequency. Opening from the 'l' key
+        // leaves a trailing space to keep typing; opening from a right-click on a
+        // frequency marker appends the marker's name instead.
+        if (name && name[0]) {
+            snprintf(textBuf, sizeof(textBuf), "%s %s", freqBuf, name);
+        }
+        else {
+            snprintf(textBuf, sizeof(textBuf), "%s ", freqBuf);
+        }
+
+        updateTailer();
 
         open = true;
         justOpened = true;
@@ -168,10 +200,125 @@ namespace radiolog {
         return 0;
     }
 
+    // Loads all log lines recorded at the current frequency into historyLines.
+    void openHistory() {
+        historyLines.clear();
+        historySelected = 0;
+        historySearchBuf[0] = '\0';
+
+        char curFreq[64];
+        formatFrequency(gui::freqSelect.frequency, curFreq, sizeof(curFreq));
+        std::string freqKey(curFreq, 5); // 5-digit kHz prefix
+
+        std::ifstream file(LOG_FILE);
+        if (!file.is_open()) {
+            flog::error("Radio log: failed to open log file for reading");
+            return;
+        }
+
+        std::string line;
+        while (std::getline(file, line)) {
+            if (!line.empty() && line.back() == '\r') { line.pop_back(); }
+            // Format: ^\d{5} .*\)$
+            if (line.size() < 7 || line.back() != ')') { continue; }
+            bool digits = true;
+            for (int i = 0; i < 5; i++) {
+                if (!isdigit((unsigned char)line[i])) { digits = false; break; }
+            }
+            if (!digits || line[5] != ' ') { continue; }
+            // Only entries recorded at the current frequency.
+            if (line.compare(0, 5, freqKey) != 0) { continue; }
+
+            historyLines.push_back(line);
+        }
+
+        historyOpen = true;
+        historyJustOpened = true;
+    }
+
+    void showHistory() {
+        if (!historyOpen) { return; }
+
+        ImVec2 dispSize = ImGui::GetIO().DisplaySize;
+        ImVec2 center(dispSize.x / 2.0f, dispSize.y / 2.0f);
+        ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+        ImGui::OpenPopup("Radio Log History");
+        if (ImGui::BeginPopupModal("Radio Log History", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            const float boxWidth = 440.0f * style::uiScale;
+            const float listHeight = 300.0f * style::uiScale;
+
+            if (historyJustOpened) {
+                ImGui::SetKeyboardFocusHere();
+                historyJustOpened = false;
+            }
+            ImGui::SetNextItemWidth(boxWidth);
+            ImGui::InputText("##history_search", historySearchBuf, sizeof(historySearchBuf));
+
+            std::string needle(historySearchBuf);
+
+            std::vector<int> filtered;
+            for (size_t i = 0; i < historyLines.size(); i++) {
+                if (containsIgnoreCase(historyLines[i], needle)) {
+                    filtered.push_back((int)i);
+                }
+            }
+
+            if (historySelected < 0) { historySelected = 0; }
+            if (filtered.empty()) { historySelected = 0; }
+            else if (historySelected >= (int)filtered.size()) { historySelected = (int)filtered.size() - 1; }
+
+            bool up = ImGui::IsKeyPressed(ImGuiKey_UpArrow, false);
+            bool down = ImGui::IsKeyPressed(ImGuiKey_DownArrow, false);
+            if (up && historySelected > 0) { historySelected--; }
+            if (down && !filtered.empty() && historySelected < (int)filtered.size() - 1) { historySelected++; }
+
+            ImGui::BeginChild("##history_list", ImVec2(boxWidth, listHeight), true);
+            for (size_t fi = 0; fi < filtered.size(); fi++) {
+                int lineIdx = filtered[fi];
+                bool selected = ((int)fi == historySelected);
+                if (ImGui::Selectable(historyLines[lineIdx].c_str(), selected)) {
+                    historySelected = (int)fi;
+                }
+                if (selected) {
+                    ImGui::SetScrollHereY();
+                }
+            }
+            ImGui::EndChild();
+
+            bool enter = ImGui::IsKeyPressed(ImGuiKey_Enter, false) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, false);
+            bool cancel = ImGui::IsKeyPressed(ImGuiKey_Escape, false);
+
+            if (enter && !filtered.empty()) {
+                std::string mainBody = extractMainBody(historyLines[filtered[historySelected]]);
+                snprintf(textBuf, sizeof(textBuf), "%s", mainBody.c_str());
+                updateTailer();
+                open = true;
+                justOpened = true;
+                historyOpen = false;
+                ImGui::CloseCurrentPopup();
+            }
+            else if (cancel) {
+                historyOpen = false;
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+
     void show() {
-        // Open on 'l' when no other text field is being edited.
-        if (!open && ImGui::IsKeyPressed(ImGuiKey_L, false) && !ImGui::GetIO().WantTextInput) {
-            openPopup();
+        // 'l' opens the log dialog; Shift+'l' opens the history list.
+        if (!open && !historyOpen && ImGui::IsKeyPressed(ImGuiKey_L, false) && !ImGui::GetIO().WantTextInput) {
+            if (ImGui::GetIO().KeyShift) {
+                openHistory();
+            }
+            else {
+                openPopup();
+            }
+        }
+
+        if (historyOpen) {
+            showHistory();
         }
 
         if (!open) { return; }
