@@ -36,18 +36,22 @@ namespace radiolog {
     char tailerBuf[128] = {0};
 
     // Formats the tuned frequency (Hz) as a zero-padded 5-digit kHz value,
-    // e.g. 7,074,500 Hz -> "07074.5", 7,074,000 Hz -> "07074", 14,270,000 Hz -> "14270".
+    // stripping trailing zeros: 7,074,500 Hz -> "07074.5", 7,074,000 Hz -> "07074",
+    // 1,234,512 Hz -> "01234.512". Frequency is integer Hz (1 Hz resolution).
     void formatFrequency(uint64_t freqHz, char* out, size_t outSize) {
-        // Round to the nearest 100 Hz (0.1 kHz) using integer math.
-        uint64_t kHz10 = (freqHz + 50) / 100; // kHz * 10
-        uint64_t intKHz = kHz10 / 10;
-        uint64_t frac = kHz10 % 10;
+        uint64_t intKHz = freqHz / 1000;
+        uint64_t fracHz = freqHz % 1000; // 0..999 (0.001 kHz)
 
-        if (frac != 0) {
-            snprintf(out, outSize, "%05llu.%llu", (unsigned long long)intKHz, (unsigned long long)frac);
+        if (fracHz == 0) {
+            snprintf(out, outSize, "%05llu", (unsigned long long)intKHz);
         }
         else {
-            snprintf(out, outSize, "%05llu", (unsigned long long)intKHz);
+            char frac[4];
+            snprintf(frac, sizeof(frac), "%03llu", (unsigned long long)fracHz);
+            int len = 3;
+            while (len > 0 && frac[len - 1] == '0') { len--; }
+            frac[len] = '\0';
+            snprintf(out, outSize, "%05llu.%s", (unsigned long long)intKHz, frac);
         }
     }
 
@@ -208,7 +212,7 @@ namespace radiolog {
 
         char curFreq[64];
         formatFrequency(gui::freqSelect.frequency, curFreq, sizeof(curFreq));
-        std::string freqKey(curFreq, 5); // 5-digit kHz prefix
+        std::string curFreqStr(curFreq); // full kHz string
 
         std::ifstream file(LOG_FILE);
         if (!file.is_open()) {
@@ -219,15 +223,11 @@ namespace radiolog {
         std::string line;
         while (std::getline(file, line)) {
             if (!line.empty() && line.back() == '\r') { line.pop_back(); }
-            // Format: ^\d{5} .*\)$
-            if (line.size() < 7 || line.back() != ')') { continue; }
-            bool digits = true;
-            for (int i = 0; i < 5; i++) {
-                if (!isdigit((unsigned char)line[i])) { digits = false; break; }
-            }
-            if (!digits || line[5] != ' ') { continue; }
-            // Only entries recorded at the current frequency.
-            if (line.compare(0, 5, freqKey) != 0) { continue; }
+            // Log entry format: "<freq> <note> (<ts>) (zc)", ending with ')'.
+            if (line.empty() || line.back() != ')') { continue; }
+            if (line.size() <= curFreqStr.size()) { continue; }
+            if (line.compare(0, curFreqStr.size(), curFreqStr) != 0) { continue; }
+            if (line[curFreqStr.size()] != ' ') { continue; }
 
             historyLines.push_back(line);
         }
