@@ -8,6 +8,8 @@
 #include <gui/gui.h>
 #include <gui/style.h>
 #include <gui/commands.h>
+#include <gui/dialogs/radio_log.h>
+#include <gui/tuner.h>
 #include <signal_path/signal_path.h>
 #include <ctime>
 
@@ -264,6 +266,34 @@ namespace ImGui {
         window->DrawList->AddLine(ImVec2(fftAreaMin.x, fftAreaMin.y),
                                   ImVec2(fftAreaMin.x, fftAreaMax.y - 1),
                                   text, style::uiScale);
+
+        // Radio-log frequency markers (shown while F1 is held). Drawn as a bright
+        // cyan pin + translucent column so they stay visible even when a bookmark
+        // sits at the same frequency.
+        if (logMarkersLoaded) {
+            const float triH = 8.0f * style::uiScale;
+            const float halfW = 4.0f * style::uiScale;
+            for (double f : logMarkerFreqs) {
+                if (f < lowerFreq || f > upperFreq) { continue; }
+                float xPos = (float)(fftAreaMin.x + ((f - lowerFreq) * horizScale));
+
+                // Translucent column behind the marker
+                window->DrawList->AddRectFilled(ImVec2(xPos - (halfW * 2.0f), fftAreaMin.y),
+                                                ImVec2(xPos + (halfW * 2.0f), fftAreaMax.y),
+                                                IM_COL32(0, 255, 255, 60));
+
+                // Bright vertical line
+                window->DrawList->AddLine(ImVec2(xPos, fftAreaMin.y + triH),
+                                          ImVec2(xPos, fftAreaMax.y),
+                                          IM_COL32(0, 255, 255, 255), 2.0f * style::uiScale);
+
+                // Filled triangle pin at the top of the FFT
+                window->DrawList->AddTriangleFilled(ImVec2(xPos, fftAreaMin.y),
+                                                    ImVec2(xPos - halfW, fftAreaMin.y + triH),
+                                                    ImVec2(xPos + halfW, fftAreaMin.y + triH),
+                                                    IM_COL32(0, 255, 255, 255));
+            }
+        }
     }
 
     void WaterFall::drawWaterfall() {
@@ -523,6 +553,21 @@ namespace ImGui {
                 if (_fullUpdate) { updateWaterfallFb(); };
             }
             return;
+        }
+
+        // Right-click on a radio-log marker (F1 overlay): tune the VFO to it.
+        if (logMarkersLoaded && ImGui::IsMouseClicked(ImGuiMouseButton_Right) && mouseInFFT) {
+            const float hitRadius = 8.0f * style::uiScale;
+            double horizScale = (double)dataWidth / viewBandwidth;
+            for (double f : logMarkerFreqs) {
+                if (f < lowerFreq || f > upperFreq) { continue; }
+                float xPos = (float)(fftAreaMin.x + ((f - lowerFreq) * horizScale));
+                if (fabsf(mousePos.x - xPos) <= hitRadius) {
+                    tuner::tune(gui::mainWindow.getTuningMode(), selectedVFO, f);
+                    gui::freqSelect.setFrequency(f);
+                    return;
+                }
+            }
         }
 
         // Finally, if nothing else was selected, just move the VFO
@@ -969,6 +1014,26 @@ namespace ImGui {
         }
 
         updateAllVFOs(true);
+
+        // F1: load and show radio-log frequency markers over the FFT. The
+        // release is debounced a few frames so OS key-repeat blips (which some
+        // platforms deliver as brief up/down pairs) don't make the overlay
+        // flicker while the key is held.
+        bool f1Held = ImGui::IsKeyDown(ImGuiKey_F1);
+        if (f1Held) {
+            logMarkersF1UpFrames = 0;
+            if (!logMarkersLoaded) {
+                logMarkerFreqs = radiolog::getLoggedFrequenciesHz();
+                logMarkersLoaded = true;
+            }
+        }
+        else if (logMarkersLoaded) {
+            if (++logMarkersF1UpFrames >= 3) {
+                logMarkersLoaded = false;
+                logMarkerFreqs.clear();
+                logMarkersF1UpFrames = 0;
+            }
+        }
 
         drawFFT();
         if (waterfallVisible) {

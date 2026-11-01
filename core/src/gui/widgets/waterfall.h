@@ -332,5 +332,10 @@ namespace ImGui {
         ImVec2 mouseDownPos;
 
         ImVec2 lastMousePos;
+
+        // Radio-log frequency markers (shown while F1 is held)
+        std::vector<double> logMarkerFreqs;
+        bool logMarkersLoaded = false;
+        int logMarkersF1UpFrames = 0;
     };
 };

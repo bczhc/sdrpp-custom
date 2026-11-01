@@ -9,12 +9,14 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdint>
+#include <cstdlib>
 #include <ctime>
 #include <fstream>
 #include <filesystem>
 #include <cmath>
 #include <cctype>
 #include <vector>
+#include <regex>
 #include <signal_path/signal_path.h>
 
 namespace radiolog {
@@ -97,6 +99,31 @@ namespace radiolog {
         if (begin == std::string::npos) { return ""; }
         size_t end = s.find_last_not_of(" \t\r\n");
         return s.substr(begin, end - begin + 1);
+    }
+
+    std::vector<double> getLoggedFrequenciesHz() {
+        std::vector<double> freqs;
+        std::ifstream file(LOG_FILE);
+        if (!file.is_open()) {
+            return freqs;
+        }
+
+        // Log entry format: "<freq-kHz> <note> ... (<ts>) (zc)"; capture group 1
+        // is the frequency in kHz (digits and one optional decimal point).
+        static const std::regex re(R"(^([\d\.]+)\s+.*\)$)");
+        std::string line;
+        std::smatch m;
+        while (std::getline(file, line)) {
+            if (!line.empty() && line.back() == '\r') { line.pop_back(); }
+            if (!std::regex_match(line, m, re)) { continue; }
+
+            const std::string freqStr = m[1].str();
+            char* end = nullptr;
+            double kHz = std::strtod(freqStr.c_str(), &end);
+            if (end == freqStr.c_str()) { continue; } // no digits parsed
+            freqs.push_back(kHz * 1000.0);
+        }
+        return freqs;
     }
 
     void appendLog(const std::string& line) {
@@ -272,12 +299,21 @@ namespace radiolog {
             if (up && historySelected > 0) { historySelected--; }
             if (down && !filtered.empty() && historySelected < (int)filtered.size() - 1) { historySelected++; }
 
-            ImGui::BeginChild("##history_list", ImVec2(boxWidth, listHeight), true);
+            ImGui::BeginChild("##history_list", ImVec2(boxWidth, listHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
             for (size_t fi = 0; fi < filtered.size(); fi++) {
                 int lineIdx = filtered[fi];
                 bool selected = ((int)fi == historySelected);
-                if (ImGui::Selectable(historyLines[lineIdx].c_str(), selected)) {
+                const char* txt = historyLines[lineIdx].c_str();
+
+                // Let long lines scroll horizontally instead of being clipped.
+                float txtWidth = ImGui::CalcTextSize(txt).x;
+                float padX = ImGui::GetStyle().FramePadding.x * 2.0f;
+                ImVec2 selSize(std::max(boxWidth, txtWidth + padX), 0.0f);
+                if (ImGui::Selectable(txt, selected, 0, selSize)) {
                     historySelected = (int)fi;
+                }
+                if (ImGui::IsItemHovered() && txtWidth > boxWidth) {
+                    ImGui::SetTooltip("%s", txt);
                 }
                 if (selected) {
                     ImGui::SetScrollHereY();
@@ -307,12 +343,12 @@ namespace radiolog {
     }
 
     void show() {
-        // 'l' opens the log dialog; Shift+'l' opens the history list.
-        if (!open && !historyOpen && ImGui::IsKeyPressed(ImGuiKey_L, false) && !ImGui::GetIO().WantTextInput) {
-            if (ImGui::GetIO().KeyShift) {
+        // 'l' opens the log dialog; F2 opens the history list.
+        if (!open && !historyOpen && !ImGui::GetIO().WantTextInput) {
+            if (ImGui::IsKeyPressed(ImGuiKey_F2, false)) {
                 openHistory();
             }
-            else {
+            else if (ImGui::IsKeyPressed(ImGuiKey_L, false)) {
                 openPopup();
             }
         }

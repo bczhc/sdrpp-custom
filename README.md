@@ -92,6 +92,8 @@ missing, text still goes in but shows as `?`.
 | `b` | Toggle USB / LSB (falls back to USB) |
 | `Shift+C` | Recenter the view on the selected VFO |
 | `x` | Toggle between the current zoom and the minimum zoom |
+| `F1` (hold) | Overlay radio-log frequencies on the FFT as cyan pins |
+| `F2` | Open the radio-log history list |
 | `Space` | Play / pause |
 | `Esc` | Toggle the menu panel |
 
@@ -146,6 +148,10 @@ is pre-filled with the current frequency in kHz (zero-padded to 5 digits), and
 a "tailer" holds a timestamp — the recording time for a file source, the wall
 clock otherwise. `Ctrl+Enter` appends the line to
 `~/Documents/radio-log.txt` and closes; `Esc` cancels.
+
+Press `F2` to open the history list of past entries for the current frequency.
+Holding `F1` overlays every logged frequency on the FFT as bright cyan pins;
+right-click a pin to tune the selected VFO to that frequency.
 
 ## Frequency bookmarks
 

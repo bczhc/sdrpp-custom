@@ -28,6 +28,8 @@ public:
     void setPlayState(bool _playing);
     bool isPlaying();
 
+    int getTuningMode() { return tuningMode; }
+
     bool lockWaterfallControls = false;
     bool playButtonLocked = false;
 
