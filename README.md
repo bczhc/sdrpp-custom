@@ -95,7 +95,7 @@ missing, text still goes in but shows as `?`.
 | `F1` (hold) | Overlay radio-log frequencies on the FFT as cyan pins |
 | `F2` | Open the radio-log history list |
 | `Space` | Play / pause |
-| `Esc` | Toggle the menu panel |
+| `Tab` | Toggle the menu panel |
 
 `x` remembers the current zoom level and zooms out to the minimum; pressing it
 again restores the remembered zoom. These shortcuts are ignored while a text

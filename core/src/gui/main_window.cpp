@@ -327,7 +327,7 @@ void MainWindow::draw() {
         }
         if (ImGui::IsKeyPressed(ImGuiKey_R, false)) { cmd_fft_min_change.store(-3.0f); }
         if (ImGui::IsKeyPressed(ImGuiKey_F, false)) { cmd_fft_min_change.store(3.0f); }
-        if (ImGui::IsKeyPressed(ImGuiKey_Escape, false)) { cmd_panel_toggle.store(true); }
+        if (ImGui::IsKeyPressed(ImGuiKey_Tab, false)) { cmd_panel_toggle.store(true); }
         if (ImGui::IsKeyPressed(ImGuiKey_Space, false)) { setPlayState(!playing); }
         if (ImGui::IsKeyPressed(ImGuiKey_C, false)) {
             if (ImGui::GetIO().KeyShift) {
