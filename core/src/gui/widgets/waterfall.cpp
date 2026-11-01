@@ -327,6 +327,7 @@ namespace ImGui {
         mouseInWaterfall = IS_IN_AREA(dragOrigin, wfMin, wfMax);
 
         int mouseWheel = ImGui::GetIO().MouseWheel;
+        float mouseWheelH = ImGui::GetIO().MouseWheelH;
 
         bool mouseMoved = false;
         if (mousePos.x != lastMousePos.x || mousePos.y != lastMousePos.y) { mouseMoved = true; }
@@ -482,9 +483,12 @@ namespace ImGui {
 
 
 
-        // If the mouse wheel is moved on the frequency scale
-        if ((mouseWheel != 0 && mouseInFreq) || saved_cmd_spectrum_shift != 0) {
-            double viewDelta = (double)mouseWheel * viewBandwidth / 20.0;
+        // If the mouse wheel is moved on the frequency scale, or the trackpad is
+        // swiped horizontally anywhere over the plot (scale, FFT or waterfall),
+        // shift the view left/right.
+        bool mouseInPlot = mouseInFreq || mouseInFFT || mouseInWaterfall;
+        if ((mouseWheel != 0 && mouseInFreq) || (mouseWheelH != 0.0f && mouseInPlot) || saved_cmd_spectrum_shift != 0) {
+            double viewDelta = ((double)mouseWheel + (double)mouseWheelH) * viewBandwidth / 20.0;
 
             if (viewLocked) {
                 centerFreq -= viewDelta;

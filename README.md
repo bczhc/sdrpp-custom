@@ -14,6 +14,9 @@ Most features are built with Claude:deepseek-v4-pro.
   playback from the keyboard.
 - **Lock f_c** / **Lock view** — switches that change how scrolling and dragging
   move the center frequency.
+- **Trackpad horizontal swipe** — swiping left/right anywhere over the
+  waterfall (frequency scale, FFT, or waterfall) pans the spectrum view, the
+  same gesture as scrolling the frequency scale.
 - **File source player** — seek bar with live waterfall prefill, plus recording
   time (UTC clock overlay and Shift-hover readout).
 - **Radio log** — log the tuned frequency or a bookmark to a text file.
